@@ -187,3 +187,4 @@ When continuing development, consider the following tasks:
 - **Backend Sync:** Connect `src/store/appStore.ts` functions to real Supabase tables using `src/services/supabase.ts` (the SQL schema in `supabase/migrations/001_create_tables.sql` already mirrors the Zustand state).
 - **Push Notifications:** Configure Firebase Cloud Messaging (FCM) credentials in `capacitor.config.ts` and set up Supabase Database Webhook to trigger Edge Functions on `approval_actions` INSERT.
 - **Offline Storage:** Use `@capacitor/preferences` or IndexedDB to cache pending logs when offline.
+
