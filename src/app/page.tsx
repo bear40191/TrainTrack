@@ -37,6 +37,7 @@ export default function HomePage() {
           <DashboardView
             onOpenCreate={() => setActiveTab('create')}
             onSelectLog={(log) => setSelectedLog(log)}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 
