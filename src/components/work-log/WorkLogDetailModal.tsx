@@ -7,8 +7,8 @@ import { StatusBadge } from '@/components/work-log/StatusBadge';
 import { STATUS_LABELS } from '@/lib/constants';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { 
-  X, Clock, Calendar, CheckCircle2, RotateCcw, 
-  Send, MessageCircle, ArrowRight, UserCheck 
+  X, Calendar, CheckCircle2, RotateCcw, 
+  Send, MessageCircle, ArrowRight, UserCheck, AlertCircle 
 } from 'lucide-react';
 
 interface Props {
@@ -35,7 +35,6 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
     currentUser.role === 'trainee' && 
     (log.status === 'draft' || log.status === 'revision_required');
 
-  // ตรวจสอบว่าพี่เลี้ยงที่ล็อกอินอยู่เป็นผู้ได้รับมอบหมายให้ตรวจ หรือพี่เลี้ยงทุกคนสามารถช่วยตรวจได้
   const isAssignedMentor = !log.assigned_mentor_id || log.assigned_mentor_id === currentUser.id;
   const canMentorReview = 
     currentUser.role === 'mentor' && log.status === 'pending_mentor';
@@ -66,20 +65,25 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-3">
             <StatusBadge status={log.status} />
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-sm">
               {log.category}
             </span>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition"
+            aria-label="ปิดหน้าต่าง"
+            className="w-8 h-8 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition shadow-sm"
           >
             <X className="w-4 h-4" />
           </button>
@@ -91,13 +95,9 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
           <div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">{log.title}</h2>
             <div className="flex items-center gap-4 text-xs text-slate-500 font-medium flex-wrap">
-              <span className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 {formatDate(log.work_date)}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-emerald-600" />
-                {log.hours_spent} ชั่วโมง
               </span>
               <span>
                 ผู้บันทึก: <strong className="text-slate-800">{log.trainee?.full_name || 'นักศึกษา'}</strong>
@@ -105,17 +105,17 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
             </div>
 
             {/* พี่เลี้ยงที่ได้รับมอบหมาย */}
-            {log.assigned_mentor && (
-              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span>พี่เลี้ยงผู้ดูแลงานนี้: <strong>{log.assigned_mentor.full_name}</strong></span>
+            {log.assigned_mentor ? (
+              <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50/80 border border-emerald-200/90 text-emerald-900 text-xs font-semibold">
+                <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>พี่เลี้ยงผู้ดูแลงานนี้: <strong>{log.assigned_mentor.full_name}</strong> ({log.assigned_mentor.position || 'พี่เลี้ยง'})</span>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* รายละเอียด */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
-            <h4 className="text-xs font-bold text-emerald-700 mb-2 uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-emerald-800 mb-2 uppercase tracking-wider">
               รายละเอียดผลการปฏิบัติงาน
             </h4>
             <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
@@ -124,20 +124,25 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
           </div>
 
           {/* รูปภาพแนบ */}
-          {log.attachments && log.attachments.length > 0 && (
+          {log.attachments && log.attachments.length > 0 ? (
             <div>
               <h4 className="text-xs font-bold text-slate-700 mb-2.5">
                 รูปภาพประกอบ ({log.attachments.length} รูป)
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {log.attachments.map((att) => (
-                  <div key={att.id} className="rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm">
-                    <img src={att.file_url} alt={att.file_name} className="w-full h-full object-cover" />
+                  <div key={att.id} className="rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm relative group">
+                    <img 
+                      src={att.file_url} 
+                      alt={att.file_name} 
+                      className="w-full h-full object-cover transition duration-200 group-hover:scale-105" 
+                      loading="lazy"
+                    />
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Timeline ลำดับการอนุมัติ */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
@@ -163,7 +168,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                         <span className="font-bold text-slate-800">
                           {act.actor?.full_name || 'ผู้ใช้งาน'}
                         </span>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-slate-400 font-medium">
                           {formatDateTime(act.created_at)}
                         </span>
                       </div>
@@ -172,11 +177,11 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                         {' '}<ArrowRight className="inline w-3 h-3 text-emerald-600 mx-1" />{' '}
                         <span className="text-emerald-700 font-bold">{STATUS_LABELS[act.to_status]}</span>
                       </p>
-                      {act.note && (
-                        <p className="mt-1 p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs italic">
+                      {act.note ? (
+                        <p className="mt-1 p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs italic shadow-sm">
                           &ldquo;{act.note}&rdquo;
                         </p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 ))
@@ -193,7 +198,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
               ความคิดเห็นและการสื่อสาร ({log.comments?.length || 0})
             </h4>
 
-            {log.comments && log.comments.length > 0 && (
+            {log.comments && log.comments.length > 0 ? (
               <div className="space-y-2.5">
                 {log.comments.map((cmt) => (
                   <div key={cmt.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
@@ -201,7 +206,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                       <span className="font-bold text-emerald-800">
                         {cmt.author?.full_name || 'ผู้ใช้งาน'}
                       </span>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-400 font-medium">
                         {formatDateTime(cmt.created_at)}
                       </span>
                     </div>
@@ -209,7 +214,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
 
             <form onSubmit={handleAddComment} className="flex gap-2">
               <input
@@ -221,7 +226,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
               >
                 ส่งข้อความ
               </button>
@@ -232,7 +237,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
         {/* Modal Footer / Action Bar */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 safe-bottom">
           {/* กรณีนักศึกษา: ส่งงาน / ส่งแก้ไข */}
-          {canTraineeSubmit && (
+          {canTraineeSubmit ? (
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-slate-500 font-medium">
                 สถานะปัจจุบัน: <strong className="text-amber-600">{STATUS_LABELS[log.status]}</strong>
@@ -242,22 +247,23 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                   submitWorkLog(log.id);
                   onClose();
                 }}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 active:scale-95 transition"
               >
                 <Send className="w-4 h-4" />
                 ส่งให้พี่เลี้ยงตรวจ
               </button>
             </div>
-          )}
+          ) : null}
 
           {/* กรณีพี่เลี้ยงตรวจงาน */}
-          {canMentorReview && (
+          {canMentorReview ? (
             <div>
-              {!isAssignedMentor && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2 mb-2 font-medium">
-                  * คุณไม่ใช่พี่เลี้ยงที่ได้รับเลือกโดยตรง แต่คุณสามารถช่วยตรวจและกดยืนยันงานนี้ได้
-                </p>
-              )}
+              {!isAssignedMentor ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-3 font-medium">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>คุณไม่ใช่พี่เลี้ยงที่ได้รับเลือกโดยตรง แต่คุณมีสิทธิ์ช่วยตรวจสอบและยืนยันงานนี้ได้</span>
+                </div>
+              ) : null}
               {isRejecting ? (
                 <div className="space-y-2">
                   <input
@@ -265,18 +271,18 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                     placeholder="ระบุสิ่งที่ต้องการให้นักศึกษาแก้ไข (จำเป็น)..."
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-xs text-slate-800"
+                    className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setIsRejecting(false)}
-                      className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-800"
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800"
                     >
                       ยกเลิก
                     </button>
                     <button
                       onClick={handleRejectConfirm}
-                      className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm"
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm active:scale-95 transition"
                     >
                       ยืนยันส่งกลับแก้ไข
                     </button>
@@ -286,7 +292,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                 <div className="flex items-center justify-between gap-3">
                   <button
                     onClick={() => setIsRejecting(true)}
-                    className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition"
                   >
                     <RotateCcw className="w-4 h-4" />
                     ส่งกลับให้แก้ไข
@@ -297,7 +303,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                       mentorApprove(log.id);
                       onClose();
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 active:scale-95 transition"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     พี่เลี้ยงกดยืนยัน & ส่งต่อหัวหน้า
@@ -305,10 +311,10 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* กรณีหัวหน้าพี่เลี้ยงอนุมัติขั้นสุดท้าย */}
-          {canLeadReview && (
+          {canLeadReview ? (
             <div>
               {isRejecting ? (
                 <div className="space-y-2">
@@ -317,18 +323,18 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                     placeholder="ระบุเหตุผลที่หัวหน้าสั่งแก้ไข..."
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-xs text-slate-800"
+                    className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setIsRejecting(false)}
-                      className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-800"
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800"
                     >
                       ยกเลิก
                     </button>
                     <button
                       onClick={handleRejectConfirm}
-                      className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm"
+                      className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm active:scale-95 transition"
                     >
                       ยืนยันส่งกลับแก้ไข
                     </button>
@@ -338,7 +344,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                 <div className="flex items-center justify-between gap-3">
                   <button
                     onClick={() => setIsRejecting(true)}
-                    className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition"
                   >
                     <RotateCcw className="w-4 h-4" />
                     ส่งกลับให้แก้ไข
@@ -349,7 +355,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                       leadApprove(log.id);
                       onClose();
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 active:scale-95 transition"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     หัวหน้าพี่เลี้ยงกดอนุมัติขั้นสุดท้าย
@@ -357,13 +363,13 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
-          {!canTraineeSubmit && !canMentorReview && !canLeadReview && (
+          {!canTraineeSubmit && !canMentorReview && !canLeadReview ? (
             <div className="text-center text-xs text-slate-500 py-1 font-medium">
               สถานะ: <span className="text-slate-800 font-bold">{STATUS_LABELS[log.status]}</span> (อ่านอย่างเดียว)
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
