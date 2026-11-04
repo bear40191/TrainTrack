@@ -31,8 +31,8 @@ export default function HomePage() {
       {/* Top Header & Role Switcher */}
       <Header onOpenNotif={() => setIsNotifOpen(true)} />
 
-      {/* Main Content Area - Full width responsive layout */}
-      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 pt-4 sm:pt-6">
+      {/* Main Content Area - max-w-6xl (สมดุล พอดีสายตา ไม่ยืดจนเกินไป) */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
         {activeTab === 'dashboard' && (
           <DashboardView
             onOpenCreate={() => setActiveTab('create')}
@@ -42,7 +42,7 @@ export default function HomePage() {
         )}
 
         {activeTab === 'create' && (
-          <div className="pb-24 max-w-5xl mx-auto">
+          <div className="pb-24 max-w-3xl mx-auto">
             <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
           </div>
         )}

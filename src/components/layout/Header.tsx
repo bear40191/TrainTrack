@@ -10,8 +10,8 @@ export const Header: React.FC<{ onOpenNotif?: () => void }> = ({ onOpenNotif }) 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8 lg:px-12 pt-4 pb-3 shadow-sm">
-      <div className="w-full mx-auto">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 pt-4 pb-3 shadow-sm">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">

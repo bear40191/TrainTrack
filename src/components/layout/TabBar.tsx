@@ -25,8 +25,8 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
       : 0;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 sm:px-8 py-2.5 pb-6 safe-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-      <div className="w-full max-w-4xl mx-auto flex items-center justify-around gap-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 pb-6 safe-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div className="max-w-xl mx-auto flex items-center justify-around gap-2">
         {/* หน้าหลัก / ภาพรวม */}
         <button
           onClick={() => onTabChange('dashboard')}
