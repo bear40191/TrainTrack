@@ -25,14 +25,14 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
       : 0;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 pb-6 safe-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-      <div className="max-w-md mx-auto flex items-center justify-around gap-1.5">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 sm:px-8 py-2.5 pb-6 safe-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-around gap-2">
         {/* หน้าหลัก / ภาพรวม */}
         <button
           onClick={() => onTabChange('dashboard')}
-          className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 ${
+          className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 ${
             activeTab === 'dashboard'
-              ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200'
+              ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-sm'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
@@ -44,7 +44,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
         {currentUser.role === 'trainee' && (
           <button
             onClick={() => onTabChange('create')}
-            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 ${
               activeTab === 'create'
                 ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30'
                 : 'text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 border border-emerald-200'
@@ -59,9 +59,9 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
         {currentUser.role === 'trainee' && (
           <button
             onClick={() => onTabChange('my-logs')}
-            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 ${
               activeTab === 'my-logs'
-                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-sm'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
@@ -74,9 +74,9 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
         {(currentUser.role === 'mentor' || currentUser.role === 'lead') && (
           <button
             onClick={() => onTabChange('reviews')}
-            className={`flex-1 relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 ${
+            className={`flex-1 relative flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 ${
               activeTab === 'reviews'
-                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-sm'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
@@ -98,9 +98,9 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
         {currentUser.role === 'admin' && (
           <button
             onClick={() => onTabChange('admin')}
-            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 ${
               activeTab === 'admin'
-                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-sm'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
