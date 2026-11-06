@@ -4,14 +4,14 @@ import React from 'react';
 import { useAppStore } from '@/store/appStore';
 import { TabKey } from './TabBar';
 import {
-  LayoutDashboard,
+  PanelsTopLeft,
   PlusCircle,
   ClipboardList,
   CheckSquare,
   Shield,
   User,
   LogOut,
-  Sparkles
+  Asterisk
 } from 'lucide-react';
 
 interface Props {
@@ -42,44 +42,44 @@ export const SidebarRail: React.FC<Props> = ({
       : 0;
 
   return (
-    <aside className="hidden lg:flex flex-col items-center justify-between w-16 py-5 my-4 ml-4 bg-[#14171f] text-white rounded-[28px] shadow-2xl shrink-0 z-20 border border-slate-800/80">
-      {/* Brand Logo Top */}
-      <div className="flex flex-col items-center gap-6">
+    <aside className="hidden lg:flex flex-col items-center justify-between w-14 py-4 my-2.5 ml-3 bg-[#131620] text-white rounded-[24px] shadow-2xl shrink-0 z-20 border border-slate-800/80 h-[calc(100vh-20px)]">
+      {/* Brand Logo Top - Asterisk / Star icon matching the reference image */}
+      <div className="flex flex-col items-center gap-5">
         <button
           onClick={() => onTabChange('dashboard')}
-          className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/30 transition hover:scale-105"
+          className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/25 transition hover:scale-105 active:scale-95"
           title="TrainTrack"
         >
-          <Sparkles className="w-5 h-5 text-white" />
+          <Asterisk className="w-5 h-5 stroke-[2.8] text-white" />
         </button>
 
         {/* Navigation Items (White box highlight like in the screenshot) */}
-        <nav className="flex flex-col items-center gap-3">
-          {/* Dashboard / Overview */}
+        <nav className="flex flex-col items-center gap-2.5">
+          {/* Dashboard / Overview - Changed Icon to PanelsTopLeft matching the screenshot */}
           <button
             onClick={() => onTabChange('dashboard')}
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
               activeTab === 'dashboard'
-                ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold'
+                ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold scale-105'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
-            title="Overview (ภาพรวม)"
+            title="Overview (ภาพรวม Dashboard)"
           >
-            <LayoutDashboard className="w-5 h-5" />
+            <PanelsTopLeft className="w-4 h-4 stroke-[2.2]" />
           </button>
 
           {/* Create Log (Trainee only) */}
           {isTrainee && (
             <button
               onClick={() => onTabChange('create')}
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                 activeTab === 'create'
-                  ? 'bg-white text-slate-900 shadow-md shadow-white/10'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold scale-105'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
               title="บันทึกงานใหม่"
             >
-              <PlusCircle className="w-5 h-5" />
+              <PlusCircle className="w-4 h-4" />
             </button>
           )}
 
@@ -87,14 +87,14 @@ export const SidebarRail: React.FC<Props> = ({
           {isTrainee && (
             <button
               onClick={() => onTabChange('my-logs')}
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                 activeTab === 'my-logs'
-                  ? 'bg-white text-slate-900 shadow-md shadow-white/10'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold scale-105'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
               title="งานของฉัน"
             >
-              <ClipboardList className="w-5 h-5" />
+              <ClipboardList className="w-4 h-4" />
             </button>
           )}
 
@@ -102,16 +102,16 @@ export const SidebarRail: React.FC<Props> = ({
           {(isMentor || isLead) && (
             <button
               onClick={() => onTabChange('reviews')}
-              className={`relative w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                 activeTab === 'reviews'
-                  ? 'bg-white text-slate-900 shadow-md shadow-white/10'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold scale-105'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
               title="ตรวจงาน"
             >
-              <CheckSquare className="w-5 h-5" />
+              <CheckSquare className="w-4 h-4" />
               {pendingReviewCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">
                   {pendingReviewCount}
                 </span>
               )}
@@ -122,35 +122,35 @@ export const SidebarRail: React.FC<Props> = ({
           {isAdmin && (
             <button
               onClick={() => onTabChange('admin')}
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                 activeTab === 'admin'
-                  ? 'bg-white text-slate-900 shadow-md shadow-white/10'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/10 font-bold scale-105'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
               title="ผู้ดูแลระบบ"
             >
-              <Shield className="w-5 h-5" />
+              <Shield className="w-4 h-4" />
             </button>
           )}
         </nav>
       </div>
 
       {/* Bottom Actions: Profile & Logout */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-2.5">
         <button
           onClick={onOpenProfile}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
           title="โปรไฟล์ผู้ใช้"
         >
-          <User className="w-5 h-5" />
+          <User className="w-4 h-4" />
         </button>
 
         <button
           onClick={onLogout}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
           title="ออกจากระบบ"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </aside>

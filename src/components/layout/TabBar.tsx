@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAppStore } from '@/store/appStore';
-import { LayoutDashboard, PlusCircle, CheckSquare, ClipboardList, Shield } from 'lucide-react';
+import { PanelsTopLeft, PlusCircle, CheckSquare, ClipboardList, Shield } from 'lucide-react';
 
 export type TabKey = 'dashboard' | 'create' | 'my-logs' | 'reviews' | 'admin';
 
@@ -36,7 +36,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onTabChange }) => {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
-          <LayoutDashboard className="w-5 h-5 mb-1" />
+          <PanelsTopLeft className="w-5 h-5 mb-1" />
           <span className="text-xs font-semibold">ภาพรวม</span>
         </button>
 

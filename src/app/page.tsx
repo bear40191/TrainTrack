@@ -36,7 +36,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f5fa] text-slate-800 flex font-sans">
+    <div className="h-screen overflow-hidden bg-[#f3f5fa] text-slate-800 flex font-sans">
       {/* Left Navigation Rail (Floating dark pill sidebar like in the reference image) */}
       <SidebarRail
         activeTab={activeTab}
@@ -46,7 +46,7 @@ export default function HomePage() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         {/* Top Header */}
         <Header
           onOpenNotif={() => setIsNotifOpen(true)}
@@ -54,7 +54,11 @@ export default function HomePage() {
         />
 
         {/* Dynamic Tab Views */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-2">
+        <main
+          className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 pt-1 pb-2 min-h-0 ${
+            activeTab === 'dashboard' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto pb-24'
+          }`}
+        >
           {activeTab === 'dashboard' && (
             <DashboardView
               onOpenCreate={() => setActiveTab('create')}
@@ -64,7 +68,7 @@ export default function HomePage() {
           )}
 
           {activeTab === 'create' && (
-            <div className="pb-24 max-w-3xl mx-auto">
+            <div className="pb-20 max-w-3xl mx-auto">
               <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
             </div>
           )}
