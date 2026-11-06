@@ -15,28 +15,43 @@ import {
   UserCheck,
   Users,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  KeyRound,
+  X,
+  Check
 } from 'lucide-react';
 
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
-  const { login } = useAppStore();
+  const { login, changePassword } = useAppStore();
   const [email, setEmail] = useState('kittisak.trainee@traintrack.app');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDemoUser, setSelectedDemoUser] = useState<Profile | null>(ALL_DEMO_USERS[0]);
+
+  // State สำหรับ Modal ลืมรหัสผ่าน
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotPwd, setShowForgotPwd] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   const handleSelectDemoUser = (user: Profile) => {
     setSelectedDemoUser(user);
     setEmail(user.email);
     setPassword('123456');
     setErrorMsg(null);
+    setSuccessMsg(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     if (!email.trim()) {
       setErrorMsg('กรุณากรอกอีเมล');
@@ -50,9 +65,54 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
       if (ok) {
         if (onLoginSuccess) onLoginSuccess();
       } else {
-        setErrorMsg('ไม่พบบัญชีนี้ในระบบ กรุณาเลือกบัญชีทดสอบด้านล่าง หรือใช้อีเมลที่มีในระบบ');
+        setErrorMsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากลืมรหัสผ่าน สามารถคลิก "ลืมรหัสผ่าน?" ด้านล่างเพื่อตั้งรหัสใหม่ได้)');
       }
     }, 350);
+  };
+
+  const handleOpenForgotPassword = () => {
+    setForgotEmail(email || 'kittisak.trainee@traintrack.app');
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
+    setForgotError(null);
+    setForgotSuccess(null);
+    setIsForgotModalOpen(true);
+  };
+
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotSuccess(null);
+
+    if (!forgotEmail.trim()) {
+      setForgotError('กรุณากรอกอีเมล');
+      return;
+    }
+
+    if (forgotNewPassword.length < 4) {
+      setForgotError('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
+      return;
+    }
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน');
+      return;
+    }
+
+    const res = changePassword(forgotEmail, forgotNewPassword);
+    if (res.success) {
+      setForgotSuccess(res.message);
+      // กรอกรหัสใหม่ลงในฟอร์มหน้า Login ให้อัตโนมัติ
+      setEmail(forgotEmail);
+      setPassword(forgotNewPassword);
+      setSuccessMsg('เปลี่ยนรหัสผ่านสำเร็จแล้ว! ระบบได้กรอกรหัสผ่านใหม่ให้คุณเรียบร้อยแล้ว สามารถกด Login ได้ทันที');
+
+      setTimeout(() => {
+        setIsForgotModalOpen(false);
+      }, 1800);
+    } else {
+      setForgotError(res.message);
+    }
   };
 
   const getRoleIcon = (role: string) => {
@@ -87,14 +147,12 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
               <circle cx="160" cy="100" r="85" fill="#f0fdf4" />
               
               {/* Floating Code Badges in Emerald / Tech style */}
-              {/* Search Badge top-left */}
               <g transform="translate(68, 25)">
                 <rect width="36" height="30" rx="8" fill="#FBBF24" />
                 <circle cx="17" cy="14" r="5" stroke="#FFFFFF" strokeWidth="2.5" />
                 <line x1="21" y1="18" x2="25" y2="22" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
               </g>
 
-              {/* Code < / > Badge top-right */}
               <g transform="translate(185, 20)">
                 <rect width="52" height="32" rx="8" fill="#F87171" />
                 <text x="14" y="22" fill="#FFFFFF" fontSize="16" fontWeight="bold" fontFamily="monospace">
@@ -102,7 +160,6 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                 </text>
               </g>
 
-              {/* { } Badge right */}
               <g transform="translate(235, 75)">
                 <rect width="32" height="28" rx="8" fill="#818CF8" />
                 <text x="10" y="20" fill="#FFFFFF" fontSize="15" fontWeight="bold" fontFamily="monospace">
@@ -113,7 +170,6 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
               {/* Background Monitor / Window */}
               <rect x="95" y="45" width="80" height="55" rx="6" fill="#1E293B" />
               <rect x="100" y="52" width="70" height="42" rx="4" fill="#0F172A" />
-              {/* Code lines in monitor */}
               <rect x="106" y="58" width="22" height="3" rx="1.5" fill="#34D399" />
               <rect x="132" y="58" width="16" height="3" rx="1.5" fill="#60A5FA" />
               <rect x="106" y="65" width="40" height="3" rx="1.5" fill="#94A3B8" />
@@ -145,28 +201,22 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
               <rect x="207" y="146" width="5" height="25" rx="2" fill="#475569" />
 
               {/* Person Working */}
-              {/* Head */}
               <circle cx="205" cy="88" r="14" fill="#FDBA74" />
-              {/* Hair */}
               <path d="M193 84 C193 72, 216 72, 218 80 C210 82, 204 88, 193 84 Z" fill="#1E293B" />
-              {/* Body / Orange Shirt */}
               <path d="M190 102 C190 102, 175 120, 168 130 L180 134 L192 118 L196 140 L218 140 L216 102 Z" fill="#F97316" />
-              {/* Arm reaching for laptop */}
               <path d="M188 106 L158 126 L148 135 L158 137 L174 126 Z" fill="#FDBA74" />
-              {/* Blue Pants */}
               <path d="M194 140 L188 175 L160 175 L175 140 Z" fill="#3B82F6" />
               <path d="M206 140 L208 175 L192 175 L196 140 Z" fill="#1D4ED8" />
-              {/* Shoes */}
               <ellipse cx="166" cy="177" rx="12" ry="4" fill="#1E293B" />
               <ellipse cx="202" cy="177" rx="10" ry="4" fill="#1E293B" />
               
-              {/* Bottom floor line */}
+              {/* Floor line */}
               <line x1="40" y1="180" x2="280" y2="180" stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
             </svg>
           </div>
         </div>
 
-        {/* Title matching user reference "Me Call API - Login" -> "TrainTrack - เข้าสู่ระบบ" */}
+        {/* Title matching user reference */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center gap-2 mb-1">
             <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-xs shadow-sm">
@@ -181,6 +231,14 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
           </p>
         </div>
 
+        {/* Success Alert */}
+        {successMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-800 animate-fadeIn">
+            <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         {/* Error Alert */}
         {errorMsg && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2.5 text-xs text-rose-700 animate-fadeIn">
@@ -189,7 +247,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
           </div>
         )}
 
-        {/* Form Inputs matching the uploaded image */}
+        {/* Form Inputs */}
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <div className="relative">
@@ -225,6 +283,17 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+
+            {/* ปุ่มลืมรหัสผ่าน (Forgot Password Link) */}
+            <div className="flex justify-end mt-1.5">
+              <button
+                type="button"
+                onClick={handleOpenForgotPassword}
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition cursor-pointer"
+              >
+                ลืมรหัสผ่าน? (เปลี่ยนรหัสผ่าน)
+              </button>
+            </div>
           </div>
 
           {/* Login Button in Theme Green (Emerald) */}
@@ -244,7 +313,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
           </button>
         </form>
 
-        {/* Quick Demo Account Selector (เข้าสู่ระบบด่วนด้วย 1 คลิก) */}
+        {/* Quick Demo Account Selector */}
         <div className="mt-6 pt-5 border-t border-slate-100">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
@@ -289,7 +358,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
           </div>
         </div>
 
-        {/* Bottom Attribution matching the user's reference footer */}
+        {/* Bottom Attribution */}
         <div className="mt-5 text-center">
           <p className="text-[11px] text-slate-400">
             TrainTrack Hybrid Internship Management Platform
@@ -297,6 +366,119 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
         </div>
 
       </div>
+
+      {/* Forgot Password Modal (ระบบลืมรหัสผ่าน) */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-black text-slate-900">ตั้งรหัสผ่านใหม่</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4">
+              ระบุอีเมลบัญชีของคุณ และกำหนดรหัสผ่านใหม่เพื่อเข้าสู่ระบบ
+            </p>
+
+            {forgotSuccess && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            {forgotError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  อีเมลบัญชีของคุณ
+                </label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="เช่น kittisak.trainee@traintrack.app"
+                  required
+                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  รหัสผ่านใหม่
+                </label>
+                <div className="relative">
+                  <input
+                    type={showForgotPwd ? 'text' : 'password'}
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="อย่างน้อย 4 ตัวอักษร"
+                    required
+                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPwd(!showForgotPwd)}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  >
+                    {showForgotPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ยืนยันรหัสผ่านใหม่
+                </label>
+                <input
+                  type={showForgotPwd ? 'text' : 'password'}
+                  value={forgotConfirmPassword}
+                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง"
+                  required
+                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                >
+                  บันทึกรหัสผ่านใหม่
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

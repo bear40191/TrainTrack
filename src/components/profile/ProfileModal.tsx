@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
 import { ROLE_LABELS } from '@/lib/constants';
 import {
@@ -16,7 +16,11 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Check
 } from 'lucide-react';
 
 interface Props {
@@ -25,9 +29,16 @@ interface Props {
 }
 
 export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
-  const { currentUser, workLogs, switchRole, selectSpecificMentor } = useAppStore();
+  const { currentUser, workLogs, switchRole, selectSpecificMentor, changePassword } = useAppStore();
 
-  // คำนวณสถิติสำหรับผู้ใช้ปัจจุบัน
+  // State สำหรับการเปลี่ยนรหัสผ่าน
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdFeedback, setPwdFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
+  // คำนวณสถิติสำหรับผู้ใช้ปัจจุบัน (ไม่มีชั่วโมงรวมแล้ว ตามที่ผู้ใช้แจ้ง)
   const traineeLogs = workLogs.filter((l) => l.trainee_id === currentUser.id);
   const totalLogsCount = traineeLogs.length;
   const approvedLogsCount = traineeLogs.filter((l) => l.status === 'approved').length;
@@ -35,11 +46,36 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
     (l) => l.status === 'pending_mentor' || l.status === 'pending_lead'
   ).length;
   const revisionLogsCount = traineeLogs.filter((l) => l.status === 'revision_required').length;
-  const totalHours = traineeLogs.reduce((acc, curr) => acc + (curr.hours_spent || 0), 0);
 
   // คำนวณสำหรับ Mentor / Lead
   const mentorPendingCount = workLogs.filter((l) => l.status === 'pending_mentor').length;
   const leadPendingCount = workLogs.filter((l) => l.status === 'pending_lead').length;
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdFeedback(null);
+
+    if (newPassword.length < 4) {
+      setPwdFeedback({ success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwdFeedback({ success: false, message: 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน' });
+      return;
+    }
+
+    const res = changePassword(currentUser.email, newPassword);
+    setPwdFeedback(res);
+    if (res.success) {
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setShowPasswordForm(false);
+        setPwdFeedback(null);
+      }, 2500);
+    }
+  };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -187,14 +223,14 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
             </div>
           </div>
 
-          {/* Activity Statistics */}
+          {/* Activity Statistics - (ไม่มีการแสดงชั่วโมงแล้ว) */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
               สรุปผลงานในระบบ
             </h3>
 
             {currentUser.role === 'trainee' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs text-center">
                   <p className="text-[11px] text-slate-500 font-medium">บันทึกทั้งหมด</p>
                   <p className="text-xl font-black text-slate-800 mt-0.5">{totalLogsCount}</p>
@@ -227,15 +263,6 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
                   <p className="text-xl font-black text-rose-700 mt-0.5">{revisionLogsCount}</p>
                   <span className="text-[10px] text-rose-600 font-semibold">ปรับปรุง</span>
                 </div>
-
-                <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl shadow-xs text-center col-span-2 sm:col-span-1">
-                  <p className="text-[11px] text-blue-800 font-medium flex items-center justify-center gap-1">
-                    <Clock className="w-3 h-3 text-blue-600" />
-                    ชั่วโมงรวม
-                  </p>
-                  <p className="text-xl font-black text-blue-700 mt-0.5">{totalHours}</p>
-                  <span className="text-[10px] text-blue-600 font-semibold">ชั่วโมง</span>
-                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -265,6 +292,91 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
                   </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* ระบบเปลี่ยนรหัสผ่านสำหรับผู้ใช้ปัจจุบัน */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold text-slate-800">ความปลอดภัยของบัญชี</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm(!showPasswordForm);
+                  setPwdFeedback(null);
+                }}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white border border-slate-200 hover:border-emerald-300 px-3 py-1.5 rounded-xl transition shadow-xs"
+              >
+                {showPasswordForm ? 'ยกเลิก' : 'เปลี่ยนรหัสผ่าน'}
+              </button>
+            </div>
+
+            {showPasswordForm && (
+              <form onSubmit={handlePasswordSubmit} className="mt-3.5 pt-3.5 border-t border-slate-200/80 space-y-3">
+                {pwdFeedback && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                      pwdFeedback.success
+                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                        : 'bg-rose-50 border border-rose-200 text-rose-700'
+                    }`}
+                  >
+                    {pwdFeedback.success ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{pwdFeedback.message}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    รหัสผ่านใหม่
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="กำหนดรหัสผ่านใหม่อย่างน้อย 4 ตัวอักษร"
+                      required
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    ยืนยันรหัสผ่านใหม่
+                  </label>
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง"
+                    required
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                >
+                  บันทึกรหัสผ่านใหม่
+                </button>
+              </form>
             )}
           </div>
 

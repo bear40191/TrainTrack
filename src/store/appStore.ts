@@ -217,8 +217,10 @@ interface AppState {
   categories: string[];
   notifications: AppNotification[];
   isAuthenticated: boolean;
+  userPasswords: Record<string, string>;
   login: (email: string, password?: string) => boolean;
   logout: () => void;
+  changePassword: (email: string, newPassword: string) => { success: boolean; message: string };
   // Actions
   switchRole: (role: Role, mentorId?: string) => void;
   selectSpecificMentor: (mentorId: string) => void;
@@ -237,15 +239,48 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: true,
+  userPasswords: {
+    'kittisak.trainee@traintrack.app': '123456',
+    'somchai.frontend@traintrack.app': '123456',
+    'vipada.backend@traintrack.app': '123456',
+    'arnon.devops@traintrack.app': '123456',
+    'veera.lead@traintrack.app': '123456',
+    'admin@traintrack.app': '123456',
+  },
+
+  changePassword: (email: string, newPassword: string) => {
+    const trimmed = email.trim().toLowerCase();
+    const userExists = ALL_DEMO_USERS.some((u) => u.email.toLowerCase() === trimmed);
+    if (!userExists) {
+      return { success: false, message: 'ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบ' };
+    }
+    if (!newPassword || newPassword.length < 4) {
+      return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+    }
+
+    set((state) => ({
+      userPasswords: {
+        ...state.userPasswords,
+        [trimmed]: newPassword,
+      },
+    }));
+
+    return {
+      success: true,
+      message: 'เปลี่ยนรหัสผ่านสำเร็จแล้ว! สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที',
+    };
+  },
 
   login: (email: string, password?: string) => {
-    // สามารถใช้ password ในการตรวจสอบได้ในอนาคต
-    if (password && password.length < 1) return false;
     const trimmed = email.trim().toLowerCase();
     const found = ALL_DEMO_USERS.find(
       (u) => u.email.toLowerCase() === trimmed
     );
     if (found) {
+      const expectedPassword = get().userPasswords[trimmed] || '123456';
+      if (password && password !== expectedPassword) {
+        return false;
+      }
       set({ currentUser: found, isAuthenticated: true });
       return true;
     }
