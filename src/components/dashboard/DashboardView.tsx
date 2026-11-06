@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import {
@@ -10,7 +10,13 @@ import {
   ChevronDown,
   Sparkles,
   CheckSquare,
-  FileText
+  FileText,
+  Search,
+  Filter,
+  X,
+  CheckCircle2,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface Props {
@@ -22,6 +28,11 @@ interface Props {
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
   const { currentUser, workLogs, mentors } = useAppStore();
   const [selectedPeriod, setSelectedPeriod] = useState<'This year' | 'This month' | 'This week'>('This year');
+
+  // State สำหรับระบบฟิลเตอร์ของ "รายการงานล่าสุด"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'revision_required'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const isTrainee = currentUser.role === 'trainee';
   const isMentor = currentUser.role === 'mentor';
@@ -42,7 +53,46 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
   const pendingRate = totalLogs > 0 ? Math.round((pendingLogs / totalLogs) * 100) : 0;
   const revisionRate = totalLogs > 0 ? 100 - approvalRate - pendingRate : 0;
 
-  // 12 เดือนสำหรับ Bar Chart ในการ์ด Sales Analytics
+  // รายการหมวดหมู่ทั้งหมดที่มีในระบบ
+  const allCategories = useMemo(() => {
+    const set = new Set<string>();
+    workLogs.forEach((l) => {
+      if (l.category) set.add(l.category);
+    });
+    return Array.from(set);
+  }, [workLogs]);
+
+  // ประมวลผล Filter ของตารางรายการงานล่าสุด
+  const filteredLogs = useMemo(() => {
+    return workLogs.filter((log) => {
+      // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อผู้บันทึก
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = log.title.toLowerCase().includes(q);
+        const matchTrainee = log.trainee?.full_name?.toLowerCase().includes(q);
+        const matchDesc = log.description?.toLowerCase().includes(q);
+        if (!matchTitle && !matchTrainee && !matchDesc) return false;
+      }
+
+      // 2. กรองตามสถานะ
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'pending') {
+          if (log.status !== 'pending_mentor' && log.status !== 'pending_lead') return false;
+        } else if (log.status !== statusFilter) {
+          return false;
+        }
+      }
+
+      // 3. กรองตามหมวดหมู่
+      if (categoryFilter !== 'all') {
+        if (log.category !== categoryFilter) return false;
+      }
+
+      return true;
+    });
+  }, [workLogs, searchQuery, statusFilter, categoryFilter]);
+
+  // 12 เดือนสำหรับ Bar Chart
   const monthsData = [
     { name: 'Jan', approved: 40, pending: 20 },
     { name: 'Feb', approved: 65, pending: 35 },
@@ -60,15 +110,16 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
 
   return (
     <div className="h-full flex flex-col justify-between font-sans">
-      {/* Bento Grid Layout - Fit to screen without scrolling */}
+      {/* Bento Grid Layout - Fit to screen without outer page scrolling */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch h-full">
         
         {/* ======================= LEFT / CENTER MAJOR COLUMN (8 COLS) ======================= */}
-        <div className="lg:col-span-8 flex flex-col justify-between gap-3 h-full">
+        {/* ใช้ flex-col และดันส่วนบนให้ชิดกัน (gap-2.5) แล้วขยาย Card 4 ด้วย flex-1 */}
+        <div className="lg:col-span-8 flex flex-col gap-2.5 h-full min-h-0">
           
           {/* Card 1: Work Analytics Bar Chart */}
-          <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs relative flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs relative shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
               <div>
                 <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                   <span>สถิติการส่งงาน (Work Analytics)</span>
@@ -101,34 +152,30 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
 
             {/* Bar Chart Visualization */}
-            <div className="h-28 sm:h-32 w-full flex items-end justify-between gap-1 sm:gap-2 pt-3 pb-1 px-1 relative">
-              {/* Background horizontal guide lines */}
+            <div className="h-24 sm:h-28 w-full flex items-end justify-between gap-1 sm:gap-2 pt-2 pb-0.5 px-1 relative">
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-30">
                 <div className="border-b border-dashed border-slate-200 w-full" />
                 <div className="border-b border-dashed border-slate-200 w-full" />
                 <div className="border-b border-dashed border-slate-200 w-full" />
               </div>
 
-              {/* Monthly Bars */}
               {monthsData.map((m, idx) => {
                 const totalHeight = m.approved + m.pending;
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end relative group">
-                    {/* Active Tooltip Bubble on July */}
                     {m.isHighlighted && (
-                      <div className="absolute -top-9 z-10 bg-[#161922] text-white px-2 py-1 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-slate-700/60 pointer-events-none">
+                      <div className="absolute -top-8 z-10 bg-[#161922] text-white px-2 py-0.5 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-slate-700/60 pointer-events-none">
                         <span className="text-emerald-400">● 10 ผ่าน</span> • <span className="text-indigo-300">○ 2 รอ</span>
                       </div>
                     )}
 
-                    {/* Dual Segmented Bar with rounded top */}
                     <div
-                      className={`w-full max-w-[22px] rounded-t-lg transition-all duration-300 flex flex-col justify-end overflow-hidden ${
+                      className={`w-full max-w-[20px] rounded-t-lg transition-all duration-300 flex flex-col justify-end overflow-hidden ${
                         m.isHighlighted
                           ? 'ring-2 ring-emerald-400 shadow-xs'
                           : 'opacity-90 group-hover:opacity-100'
                       }`}
-                      style={{ height: `${totalHeight * 0.82}%` }}
+                      style={{ height: `${totalHeight * 0.78}%` }}
                     >
                       <div
                         className={`w-full ${m.isHighlighted ? 'bg-indigo-400' : 'bg-[#d8dbf3]'}`}
@@ -141,7 +188,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     </div>
 
                     <span
-                      className={`text-[9px] mt-1 font-medium ${
+                      className={`text-[9px] mt-0.5 font-medium ${
                         m.isHighlighted ? 'text-slate-900 font-extrabold' : 'text-slate-400'
                       }`}
                     >
@@ -153,12 +200,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Middle Row: Two Asymmetric Cards (Donut Chart & Last Activity) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Middle Row: ดันขึ้นมาชิดด้านบน (gap-2.5) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
             
-            {/* Card 2: Donut Chart */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1">
+            {/* Card 2: Donut Chart (Status) */}
+            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-0.5">
                 <h4 className="text-xs font-extrabold text-slate-900">
                   สัดส่วนสถานะงาน (Status)
                 </h4>
@@ -166,8 +213,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </div>
 
               {/* Donut Graphic */}
-              <div className="flex items-center justify-center py-1 relative">
-                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 100 100">
+              <div className="flex items-center justify-center py-0.5 relative">
+                <svg className="w-16 h-16 sm:w-20 sm:h-20 -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -202,12 +249,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   <span className="text-sm font-black text-slate-900 leading-none">
                     {approvalRate || 65}%
                   </span>
-                  <span className="text-[9px] text-slate-400 font-medium">อนุมัติ</span>
+                  <span className="text-[8px] text-slate-400 font-medium">อนุมัติ</span>
                 </div>
               </div>
 
               {/* Donut Legend */}
-              <div className="flex items-center justify-around gap-1 pt-2 border-t border-slate-100 text-[10px]">
+              <div className="flex items-center justify-around gap-1 pt-1.5 border-t border-slate-100 text-[9px] sm:text-[10px]">
                 <span className="flex items-center gap-1 text-slate-600 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   ผ่าน {approvalRate}%
@@ -224,8 +271,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
 
             {/* Card 3: Last Activity */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1">
                 <h4 className="text-xs font-extrabold text-slate-900">
                   กิจกรรมล่าสุด (Last Activity)
                 </h4>
@@ -243,29 +290,29 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </div>
 
               {/* Activity rows */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {workLogs.slice(0, 2).map((log, i) => (
                   <div
                     key={log.id || i}
                     onClick={() => onSelectLog(log)}
-                    className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                    className="flex items-center justify-between gap-2 p-1 rounded-xl hover:bg-slate-50 transition cursor-pointer"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-[10px]">
+                      <div className="w-5 h-5 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-[9px]">
                         {log.trainee?.full_name?.charAt(0) || 'U'}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-slate-800 truncate">
+                        <p className="text-[10px] font-bold text-slate-800 truncate">
                           {log.title}
                         </p>
-                        <p className="text-[9px] text-slate-400 truncate">
+                        <p className="text-[8px] text-slate-400 truncate">
                           {log.work_date} • {log.assigned_mentor?.full_name?.split(' ')[0] || 'พี่เลี้ยง'}
                         </p>
                       </div>
                     </div>
 
                     <span
-                      className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                      className={`shrink-0 px-2 py-0.5 rounded-full text-[8px] font-bold border ${
                         log.status === 'approved'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : log.status === 'revision_required'
@@ -279,10 +326,10 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 ))}
               </div>
 
-              <div className="pt-1 text-right">
+              <div className="pt-0.5 text-right">
                 <button
                   onClick={() => onNavigateTab && onNavigateTab(isTrainee ? 'my-logs' : 'reviews')}
-                  className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+                  className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
                 >
                   <span>ดูกิจกรรมทั้งหมด</span>
                   <ArrowRight className="w-3 h-3" />
@@ -292,101 +339,219 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
 
           </div>
 
-          {/* Card 4: Recent Work Logs Table */}
-          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-extrabold text-slate-900 tracking-tight">
-                รายการงานล่าสุด (Work Logs Table)
-              </h4>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600">
-                {workLogs.length} รายการ
-              </span>
+          {/* Card 4: ขยายรายงานล่าสุด (Work Logs Table) ขึ้น พร้อมระบบฟิลเตอร์ครบวงจร! */}
+          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Header + Filter Bar */}
+            <div className="space-y-2 mb-2 pb-2 border-b border-slate-100 shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>รายการงานล่าสุด (Work Logs Table)</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      แสดง {filteredLogs.length} จาก {workLogs.length}
+                    </span>
+                  </h4>
+                </div>
+
+                {/* Search Bar Input */}
+                <div className="relative w-44 sm:w-56">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ค้นหาชื่องาน..."
+                    className="w-full pl-7 pr-6 py-1 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-emerald-500 rounded-xl text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5 pointer-events-none" />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter Pills & Category Dropdown */}
+              <div className="flex items-center justify-between flex-wrap gap-1.5 pt-0.5">
+                {/* Status Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto text-[10px] font-bold">
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      statusFilter === 'all'
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                  >
+                    ทั้งหมด
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('approved')}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                      statusFilter === 'approved'
+                        ? 'bg-emerald-600 text-white shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                    อนุมัติแล้ว
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('pending')}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                      statusFilter === 'pending'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                  >
+                    <Clock className="w-2.5 h-2.5 text-indigo-400" />
+                    รอตรวจ
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('revision_required')}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                      statusFilter === 'revision_required'
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                  >
+                    <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
+                    ต้องแก้ไข
+                  </button>
+                </div>
+
+                {/* Category Dropdown Filter */}
+                <div className="relative inline-flex items-center text-[10px]">
+                  <Filter className="w-3 h-3 text-slate-400 mr-1" />
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="appearance-none bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg px-2 py-1 pr-5 font-bold text-slate-700 focus:outline-none cursor-pointer text-[10px]"
+                  >
+                    <option value="all">ทุกหมวดหมู่</option>
+                    {allCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-2.5 h-2.5 text-slate-400 absolute right-1.5 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
-            <div className="overflow-x-auto -mx-1">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 font-semibold text-[10px]">
-                    <th className="pb-1.5 px-2">หัวข้องาน</th>
-                    <th className="pb-1.5 px-2">หมวดหมู่</th>
-                    <th className="pb-1.5 px-2">วันที่</th>
-                    <th className="pb-1.5 px-2">สถานะ</th>
-                    <th className="pb-1.5 px-2 text-right">การกระทำ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100/80">
-                  {workLogs.slice(0, 3).map((log) => (
-                    <tr
-                      key={log.id}
-                      onClick={() => onSelectLog(log)}
-                      className="hover:bg-slate-50/80 transition cursor-pointer group"
-                    >
-                      <td className="py-1.5 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                            <FileText className="w-3.5 h-3.5" />
-                          </div>
-                          <p className="font-bold text-slate-900 line-clamp-1 text-[11px]">
-                            {log.title}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-1.5 px-2 text-slate-600 font-medium">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-semibold text-slate-700">
-                          {log.category.split(' ')[0]}
-                        </span>
-                      </td>
-                      <td className="py-1.5 px-2 text-slate-500 font-medium whitespace-nowrap text-[10px]">
-                        {log.work_date}
-                      </td>
-                      <td className="py-1.5 px-2 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                            log.status === 'approved'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : log.status === 'revision_required'
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}
-                        >
-                          <span
-                            className={`w-1 h-1 rounded-full ${
-                              log.status === 'approved'
-                                ? 'bg-emerald-500'
-                                : log.status === 'revision_required'
-                                ? 'bg-rose-500'
-                                : 'bg-amber-500'
-                            }`}
-                          />
-                          {log.status === 'approved' ? 'อนุมัติ' : log.status === 'revision_required' ? 'แก้ไข' : 'รอตรวจ'}
-                        </span>
-                      </td>
-                      <td className="py-1.5 px-2 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectLog(log);
-                          }}
-                          className="px-2 py-0.5 rounded-lg bg-white group-hover:bg-emerald-600 group-hover:text-white border border-slate-200 group-hover:border-emerald-600 text-slate-700 font-bold text-[10px] transition"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      </td>
+            {/* Table Area - Expanded & Scrollable */}
+            <div className="flex-1 overflow-y-auto -mx-1 min-h-0 pr-1">
+              {filteredLogs.length > 0 ? (
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-white z-10">
+                    <tr className="border-b border-slate-100 text-slate-400 font-semibold text-[10px]">
+                      <th className="pb-1.5 px-2">หัวข้องาน</th>
+                      <th className="pb-1.5 px-2">หมวดหมู่</th>
+                      <th className="pb-1.5 px-2">วันที่</th>
+                      <th className="pb-1.5 px-2">สถานะ</th>
+                      <th className="pb-1.5 px-2 text-right">การกระทำ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/80">
+                    {filteredLogs.map((log) => (
+                      <tr
+                        key={log.id}
+                        onClick={() => onSelectLog(log)}
+                        className="hover:bg-slate-50/80 transition cursor-pointer group"
+                      >
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 group-hover:text-emerald-900 line-clamp-1 text-[11px] transition">
+                                {log.title}
+                              </p>
+                              <p className="text-[9px] text-slate-400">
+                                โดย: {log.trainee?.full_name?.split(' ')[0] || 'นักศึกษา'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-slate-600 font-medium">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-semibold text-slate-700">
+                            {log.category.split(' ')[0]}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-slate-500 font-medium whitespace-nowrap text-[10px]">
+                          {log.work_date}
+                        </td>
+                        <td className="py-2 px-2 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                              log.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : log.status === 'revision_required'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full ${
+                                log.status === 'approved'
+                                  ? 'bg-emerald-500'
+                                  : log.status === 'revision_required'
+                                  ? 'bg-rose-500'
+                                  : 'bg-amber-500'
+                              }`}
+                            />
+                            {log.status === 'approved' ? 'อนุมัติ' : log.status === 'revision_required' ? 'แก้ไข' : 'รอตรวจ'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectLog(log);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white group-hover:bg-emerald-600 group-hover:text-white border border-slate-200 group-hover:border-emerald-600 text-slate-700 font-bold text-[10px] transition shadow-2xs"
+                          >
+                            ดูรายละเอียด
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="py-8 text-center text-slate-400">
+                  <p className="text-xs font-semibold">ไม่พบรายการงานที่ตรงกับเงื่อนไขการค้นหา</p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                      setCategoryFilter('all');
+                    }}
+                    className="mt-2 text-[10px] text-emerald-600 font-bold hover:underline"
+                  >
+                    ล้างตัวกรองทั้งหมด
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
         </div>
 
         {/* ======================= RIGHT COLUMN CARDS (4 COLS) ======================= */}
-        <div className="lg:col-span-4 flex flex-col justify-between gap-3 h-full">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 h-full">
           
           {/* Card A: Dark Card (Total Logs) */}
-          <div className="bg-[#141720] text-white rounded-2xl p-3.5 shadow-md border border-slate-800/80 relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-[#141720] text-white rounded-2xl p-3 sm:p-3.5 shadow-md border border-slate-800/80 relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 จำนวนบันทึกงานรวม
               </span>
@@ -395,7 +560,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </span>
             </div>
 
-            <div className="flex items-baseline gap-2 mb-1">
+            <div className="flex items-baseline gap-2 mb-0.5">
               <span className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {totalLogs > 0 ? totalLogs : 12}
               </span>
@@ -404,7 +569,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 +15%
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mb-3">
+            <p className="text-[10px] text-slate-400 mb-2.5">
               รายการบันทึกการฝึกงานในระบบ
             </p>
 
@@ -439,7 +604,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
           </div>
 
           {/* Card B: Lavender Gradient Card (Pending Reviews) */}
-          <div className="bg-gradient-to-br from-[#c9cfec] via-[#dde1f7] to-[#ede7f8] text-slate-900 rounded-2xl p-3.5 shadow-2xs border border-indigo-200/50 flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-[#c9cfec] via-[#dde1f7] to-[#ede7f8] text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-indigo-200/50 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-slate-700">
                 งานที่รอการตรวจสอบ
@@ -457,12 +622,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 รอพี่เลี้ยง/หัวหน้า
               </span>
             </div>
-            <p className="text-[10px] text-slate-600 mb-2">
+            <p className="text-[10px] text-slate-600 mb-1.5">
               {pendingLogs > 0 ? 'มีรายการรอการยืนยันในคิว' : 'ไม่มีงานค้างตรวจในขณะนี้'}
             </p>
 
             {/* Mini Bar Sparklines */}
-            <div className="h-10 flex items-end justify-between gap-1 pt-1 px-1 relative">
+            <div className="h-9 flex items-end justify-between gap-1 pt-1 px-1 relative">
               {[25, 45, 60, 35, 75, 90, 50, 40].map((h, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
                   {i === 5 && (
@@ -482,7 +647,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
           </div>
 
           {/* Card C: Warm Cream Card (Approved Logs) */}
-          <div className="bg-gradient-to-br from-[#fff7ee] via-[#fffbf6] to-white text-slate-900 rounded-2xl p-3.5 shadow-2xs border border-amber-200/60 flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-[#fff7ee] via-[#fffbf6] to-white text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-amber-200/60 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-slate-700">
                 อนุมัติสำเร็จแล้ว (Approved)
@@ -502,7 +667,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </p>
 
             {/* Wave Sparkline */}
-            <div className="h-9 w-full relative pt-1">
+            <div className="h-8 w-full relative pt-1">
               <svg className="w-full h-full overflow-visible" viewBox="0 0 200 40" preserveAspectRatio="none">
                 <path
                   d="M 0,28 Q 30,36 60,24 T 120,30 T 170,14 T 200,9"
