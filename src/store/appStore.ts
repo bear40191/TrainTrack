@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { Profile, Role, WorkLog, AppNotification, ApprovalAction, Comment as AppComment } from '@/lib/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
+import {
+  notifyMentorPendingReview,
+  notifyLeadPendingApproval,
+  notifyTraineeApproved,
+  notifyTraineeRevisionRequired,
+} from '@/services/emailNotification';
+
+// Mock email ของ Lead (ใช้ตอนยังไม่มี backend จริง)
+const MOCK_LEAD_EMAIL = 'veera.lead@traintrack.app';
 
 // รายชื่อพี่เลี้ยงหลายคน (Mentor List)
 export const MOCK_MENTORS: Profile[] = [
@@ -39,6 +48,7 @@ export const MOCK_MENTORS: Profile[] = [
   },
 ];
 
+
 export const MOCK_USERS: Record<Role, Profile> = {
   trainee: {
     id: 'user-trainee-1',
@@ -72,6 +82,13 @@ export const MOCK_USERS: Record<Role, Profile> = {
     created_at: new Date().toISOString(),
   },
 };
+
+export const ALL_DEMO_USERS: Profile[] = [
+  MOCK_USERS.trainee,
+  ...MOCK_MENTORS,
+  MOCK_USERS.lead,
+  MOCK_USERS.admin,
+];
 
 const INITIAL_LOGS: WorkLog[] = [
   {
@@ -199,6 +216,9 @@ interface AppState {
   workLogs: WorkLog[];
   categories: string[];
   notifications: AppNotification[];
+  isAuthenticated: boolean;
+  login: (email: string, password?: string) => boolean;
+  logout: () => void;
   // Actions
   switchRole: (role: Role, mentorId?: string) => void;
   selectSpecificMentor: (mentorId: string) => void;
@@ -216,6 +236,50 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  isAuthenticated: true,
+
+  login: (email: string, password?: string) => {
+    // สามารถใช้ password ในการตรวจสอบได้ในอนาคต
+    if (password && password.length < 1) return false;
+    const trimmed = email.trim().toLowerCase();
+    const found = ALL_DEMO_USERS.find(
+      (u) => u.email.toLowerCase() === trimmed
+    );
+    if (found) {
+      set({ currentUser: found, isAuthenticated: true });
+      return true;
+    }
+    // Match by keywords if typed loosely
+    if (trimmed.includes('trainee') || trimmed.includes('นักศึกษา')) {
+      set({ currentUser: MOCK_USERS.trainee, isAuthenticated: true });
+      return true;
+    }
+    if (trimmed.includes('somchai') || trimmed.includes('frontend')) {
+      set({ currentUser: MOCK_MENTORS[0], isAuthenticated: true });
+      return true;
+    }
+    if (trimmed.includes('vipada') || trimmed.includes('backend')) {
+      set({ currentUser: MOCK_MENTORS[1], isAuthenticated: true });
+      return true;
+    }
+    if (trimmed.includes('arnon') || trimmed.includes('devops')) {
+      set({ currentUser: MOCK_MENTORS[2], isAuthenticated: true });
+      return true;
+    }
+    if (trimmed.includes('lead') || trimmed.includes('หัวหน้า')) {
+      set({ currentUser: MOCK_USERS.lead, isAuthenticated: true });
+      return true;
+    }
+    if (trimmed.includes('admin') || trimmed.includes('ผู้ดูแล')) {
+      set({ currentUser: MOCK_USERS.admin, isAuthenticated: true });
+      return true;
+    }
+    return false;
+  },
+
+  logout: () => {
+    set({ isAuthenticated: false });
+  },
   currentUser: MOCK_USERS.trainee,
   mentors: MOCK_MENTORS,
   workLogs: INITIAL_LOGS,
@@ -294,6 +358,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       ]
     };
 
+
+    // ส่ง email แจ้งพี่เลี้ยง (fire-and-forget — ไม่ block UI)
+    if (logData.status === 'pending_mentor') {
+      notifyMentorPendingReview(assignedMentor, user, newLog.title);
+    }
     set((state) => ({
       workLogs: [newLog, ...state.workLogs],
       notifications: logData.status === 'pending_mentor' ? [
@@ -314,7 +383,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateWorkLog: (id, updates) => {
     set((state) => ({
-      workLogs: state.workLogs.map((log) => 
+      workLogs: state.workLogs.map((log) =>
         log.id === id ? { ...log, ...updates, updated_at: new Date().toISOString() } : log
       )
     }));
@@ -327,6 +396,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!target) return state;
 
       const mentorToNotify = target.assigned_mentor_id || 'user-mentor-1';
+      // email call in submitWorkLog
+      if (target.assigned_mentor) {
+        notifyMentorPendingReview(target.assigned_mentor, user, target.title);
+      }
 
       const newAction: ApprovalAction = {
         id: 'action-' + Date.now(),
@@ -355,11 +428,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         workLogs: state.workLogs.map((log) =>
           log.id === id
             ? {
-                ...log,
-                status: 'pending_mentor',
-                submitted_at: new Date().toISOString(),
-                approval_actions: [...(log.approval_actions || []), newAction]
-              }
+              ...log,
+              status: 'pending_mentor',
+              submitted_at: new Date().toISOString(),
+              approval_actions: [...(log.approval_actions || []), newAction]
+            }
             : log
         ),
         notifications: [newNotif, ...state.notifications]
@@ -396,6 +469,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString()
       };
 
+      // email call in mentorApprove
+      const leadProfile = { email: MOCK_LEAD_EMAIL, full_name: 'หัวหน้าพี่เลี้ยง' };
+      if (target.trainee) {
+        notifyLeadPendingApproval(leadProfile, target.trainee, user, target.title);
+      }
+
       const notifyTrainee: AppNotification = {
         id: 'notif-trainee-' + Date.now(),
         user_id: target.trainee_id,
@@ -411,10 +490,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         workLogs: state.workLogs.map((log) =>
           log.id === id
             ? {
-                ...log,
-                status: 'pending_lead',
-                approval_actions: [...(log.approval_actions || []), action]
-              }
+              ...log,
+              status: 'pending_lead',
+              approval_actions: [...(log.approval_actions || []), action]
+            }
             : log
         ),
         notifications: [notifyLead, notifyTrainee, ...state.notifications]
@@ -440,6 +519,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         actor: user
       };
 
+      // email call in mentorReject
+      if (target.trainee) {
+        notifyTraineeRevisionRequired(target.trainee, user, target.title, note);
+      }
+
+      // email call in mentorReject
+      if (target.trainee) {
+        notifyTraineeRevisionRequired(target.trainee, user, target.title, note);
+      }
+
       const notifyTrainee: AppNotification = {
         id: 'notif-reject-' + Date.now(),
         user_id: target.trainee_id,
@@ -455,11 +544,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         workLogs: state.workLogs.map((log) =>
           log.id === id
             ? {
-                ...log,
-                status: 'revision_required',
-                revision_count: (log.revision_count || 0) + 1,
-                approval_actions: [...(log.approval_actions || []), action]
-              }
+              ...log,
+              status: 'revision_required',
+              revision_count: (log.revision_count || 0) + 1,
+              approval_actions: [...(log.approval_actions || []), action]
+            }
             : log
         ),
         notifications: [notifyTrainee, ...state.notifications]
@@ -485,6 +574,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         actor: user
       };
 
+      // email call in leadApprove
+      if (target.trainee) {
+        notifyTraineeApproved(target.trainee, target.title, note);
+      }
+
+      // email call in leadApprove
+      if (target.trainee) {
+        notifyTraineeApproved(target.trainee, target.title, note);
+      }
+
       const notifyTrainee: AppNotification = {
         id: 'notif-approved-' + Date.now(),
         user_id: target.trainee_id,
@@ -500,11 +599,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         workLogs: state.workLogs.map((log) =>
           log.id === id
             ? {
-                ...log,
-                status: 'approved',
-                approved_at: new Date().toISOString(),
-                approval_actions: [...(log.approval_actions || []), action]
-              }
+              ...log,
+              status: 'approved',
+              approved_at: new Date().toISOString(),
+              approval_actions: [...(log.approval_actions || []), action]
+            }
             : log
         ),
         notifications: [notifyTrainee, ...state.notifications]
@@ -545,11 +644,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         workLogs: state.workLogs.map((log) =>
           log.id === id
             ? {
-                ...log,
-                status: 'revision_required',
-                revision_count: (log.revision_count || 0) + 1,
-                approval_actions: [...(log.approval_actions || []), action]
-              }
+              ...log,
+              status: 'revision_required',
+              revision_count: (log.revision_count || 0) + 1,
+              approval_actions: [...(log.approval_actions || []), action]
+            }
             : log
         ),
         notifications: [notifyTrainee, ...state.notifications]

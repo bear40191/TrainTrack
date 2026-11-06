@@ -12,12 +12,15 @@ import { ReviewListView } from '@/components/review/ReviewListView';
 import { AdminView } from '@/components/admin/AdminView';
 import { WorkLogDetailModal } from '@/components/work-log/WorkLogDetailModal';
 import { NotificationModal } from '@/components/layout/NotificationModal';
+import { ProfileModal } from '@/components/profile/ProfileModal';
+import { LoginPage } from '@/components/auth/LoginPage';
 
 export default function HomePage() {
-  const { workLogs } = useAppStore();
+  const { workLogs, isAuthenticated, logout } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleSelectLogById = (logId: string) => {
     const found = workLogs.find((l) => l.id === logId);
@@ -26,10 +29,18 @@ export default function HomePage() {
     }
   };
 
+  // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้า Login สไตล์มินิมอลตามที่ผู้ใช้ส่งมา
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setActiveTab('dashboard')} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
       {/* Top Header & Role Switcher */}
-      <Header onOpenNotif={() => setIsNotifOpen(true)} />
+      <Header
+        onOpenNotif={() => setIsNotifOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+      />
 
       {/* Main Content Area - max-w-6xl (สมดุล พอดีสายตา ไม่ยืดจนเกินไป) */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
@@ -74,6 +85,14 @@ export default function HomePage() {
         <NotificationModal
           onClose={() => setIsNotifOpen(false)}
           onSelectLog={handleSelectLogById}
+        />
+      )}
+
+      {/* Profile Modal */}
+      {isProfileOpen && (
+        <ProfileModal
+          onClose={() => setIsProfileOpen(false)}
+          onLogout={logout}
         />
       )}
     </div>
