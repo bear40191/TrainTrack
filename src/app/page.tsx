@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import { Header } from '@/components/layout/Header';
 import { TabBar, TabKey } from '@/components/layout/TabBar';
+import { SidebarRail } from '@/components/layout/SidebarRail';
 import { DashboardView } from '@/components/dashboard/DashboardView';
 import { WorkLogForm } from '@/components/work-log/WorkLogForm';
 import { MyLogsView } from '@/components/work-log/MyLogsView';
@@ -29,48 +30,61 @@ export default function HomePage() {
     }
   };
 
-  // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้า Login สไตล์มินิมอลตามที่ผู้ใช้ส่งมา
+  // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้า Login
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={() => setActiveTab('dashboard')} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      {/* Top Header & Role Switcher */}
-      <Header
-        onOpenNotif={() => setIsNotifOpen(true)}
+    <div className="min-h-screen bg-[#f3f5fa] text-slate-800 flex font-sans">
+      {/* Left Navigation Rail (Floating dark pill sidebar like in the reference image) */}
+      <SidebarRail
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onLogout={logout}
       />
 
-      {/* Main Content Area - max-w-6xl (สมดุล พอดีสายตา ไม่ยืดจนเกินไป) */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            onOpenCreate={() => setActiveTab('create')}
-            onSelectLog={(log) => setSelectedLog(log)}
-            onNavigateTab={(tab) => setActiveTab(tab)}
-          />
-        )}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <Header
+          onOpenNotif={() => setIsNotifOpen(true)}
+          onOpenProfile={() => setIsProfileOpen(true)}
+        />
 
-        {activeTab === 'create' && (
-          <div className="pb-24 max-w-3xl mx-auto">
-            <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
-          </div>
-        )}
+        {/* Dynamic Tab Views */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-2">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              onOpenCreate={() => setActiveTab('create')}
+              onSelectLog={(log) => setSelectedLog(log)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
 
-        {activeTab === 'my-logs' && (
-          <MyLogsView onSelectLog={(log) => setSelectedLog(log)} />
-        )}
+          {activeTab === 'create' && (
+            <div className="pb-24 max-w-3xl mx-auto">
+              <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
+            </div>
+          )}
 
-        {activeTab === 'reviews' && (
-          <ReviewListView onSelectLog={(log) => setSelectedLog(log)} />
-        )}
+          {activeTab === 'my-logs' && (
+            <MyLogsView onSelectLog={(log) => setSelectedLog(log)} />
+          )}
 
-        {activeTab === 'admin' && <AdminView />}
-      </main>
+          {activeTab === 'reviews' && (
+            <ReviewListView onSelectLog={(log) => setSelectedLog(log)} />
+          )}
 
-      {/* Bottom Tab Navigation */}
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          {activeTab === 'admin' && <AdminView />}
+        </main>
+      </div>
+
+      {/* Bottom Tab Navigation (Mobile/Tablet only) */}
+      <div className="lg:hidden">
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
 
       {/* Detail Modal */}
       {selectedLog && (
