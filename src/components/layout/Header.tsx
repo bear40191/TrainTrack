@@ -5,37 +5,115 @@ import { useAppStore } from '@/store/appStore';
 import { Bell, ChevronDown, X, Users2 } from 'lucide-react';
 import { RoleSelector } from './RoleSelector';
 import { ROLE_LABELS } from '@/lib/constants';
+import { TabKey } from './TabBar';
 
 interface HeaderProps {
+  activeTab?: TabKey;
   onOpenNotif?: () => void;
   onOpenProfile?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenNotif, onOpenProfile }) => {
+function getHeaderContent(tab: TabKey = 'dashboard', role: string) {
+  switch (tab) {
+    case 'create':
+      return {
+        title: 'บันทึกงานใหม่',
+        badge: 'New Work Log',
+        subtitle: 'กรอกรายละเอียดการปฏิบัติงานประจำวัน แนบหลักฐาน และส่งให้พี่เลี้ยงตรวจสอบ',
+      };
+    case 'my-logs':
+      return {
+        title: 'งานของฉัน',
+        badge: 'My Work Logs',
+        subtitle: 'ตรวจสอบประวัติ ติดตามสถานะงานที่ส่ง และดูข้อเสนอแนะจากพี่เลี้ยง',
+      };
+    case 'reviews':
+      if (role === 'mentor') {
+        return {
+          title: 'ตรวจงานนักศึกษา',
+          badge: 'Mentor Review',
+          subtitle: 'ตรวจสอบรายละเอียดงาน ยืนยันความถูกต้อง หรือส่งกลับให้นักศึกษาแก้ไข',
+        };
+      }
+      if (role === 'lead') {
+        return {
+          title: 'อนุมัติขั้นสุดท้าย',
+          badge: 'Lead Approval',
+          subtitle: 'ตรวจสอบและอนุมัติผลงานขั้นสุดท้าย เพื่อประเมินผลการฝึกงานสมบูรณ์',
+        };
+      }
+      return {
+        title: 'รายการตรวจงาน',
+        badge: 'Reviews',
+        subtitle: 'รายการบันทึกงานที่รอการตรวจสอบและอนุมัติในระบบ',
+      };
+    case 'admin':
+      return {
+        title: 'การจัดการระบบ',
+        badge: 'Administration',
+        subtitle: 'จัดการรายชื่อผู้ใช้ กำหนดบทบาทพี่เลี้ยง/นักศึกษา และหมวดหมู่งาน',
+      };
+    case 'dashboard':
+    default:
+      if (role === 'mentor') {
+        return {
+          title: 'Overview',
+          badge: 'Mentor Dashboard',
+          subtitle: 'ภาพรวมงานของนักศึกษาฝึกงานที่รอการตรวจสอบและส่งต่อหัวหน้า',
+        };
+      }
+      if (role === 'lead') {
+        return {
+          title: 'Overview',
+          badge: 'Lead Dashboard',
+          subtitle: 'ภาพรวมการอนุมัติงานขั้นสุดท้ายและการประเมินนักศึกษาทั้งทีม',
+        };
+      }
+      if (role === 'admin') {
+        return {
+          title: 'Overview',
+          badge: 'Admin Dashboard',
+          subtitle: 'ภาพรวมระบบ บัญชีผู้ใช้งาน และรายงานสถิติทั้งหมด',
+        };
+      }
+      return {
+        title: 'Overview',
+        badge: 'TrainTrack',
+        subtitle: 'Detailed information about your internship & work logs',
+      };
+  }
+}
+
+export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenNotif, onOpenProfile }) => {
   const { currentUser, notifications } = useAppStore();
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const [showRoleSelector, setShowRoleSelector] = useState(false);
+
+  // ดึงหัวข้อและคำอธิบายตามแท็บปัจจุบันและบทบาทของผู้ใช้งาน
+  const headerInfo = getHeaderContent(activeTab, currentUser.role);
 
   return (
     <header className="px-4 sm:px-6 pt-2 pb-1 transition-all z-20">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between gap-3">
-          {/* Left: Overview Title & Subtitle like in the photo */}
+          {/* Left: Dynamic Page Title & Subtitle based on Active Tab and Role */}
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Overview
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight transition-all">
+                {headerInfo.title}
               </h1>
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                TrainTrack
-              </span>
+              {headerInfo.badge && (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 transition-all">
+                  {headerInfo.badge}
+                </span>
+              )}
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 font-medium">
-              Detailed information about your internship & work logs
+            <p className="text-[11px] sm:text-xs text-slate-400 font-medium transition-all">
+              {headerInfo.subtitle}
             </p>
           </div>
 
-          {/* Right: Search/Role Switcher, Notification Bell, User Avatar like in the photo */}
+          {/* Right: Role Switcher, Notification Bell, User Avatar */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick Role Switcher Pill */}
             <button

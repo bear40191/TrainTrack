@@ -49,6 +49,7 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         {/* Top Header */}
         <Header
+          activeTab={activeTab}
           onOpenNotif={() => setIsNotifOpen(true)}
           onOpenProfile={() => setIsProfileOpen(true)}
         />
