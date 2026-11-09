@@ -36,7 +36,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f3f5fa] text-slate-800 flex font-sans">
+    <div className="h-screen overflow-hidden bg-[#EFEFEF] text-slate-800 flex font-sans">
       {/* Left Navigation Rail (Floating dark pill sidebar like in the reference image) */}
       <SidebarRail
         activeTab={activeTab}

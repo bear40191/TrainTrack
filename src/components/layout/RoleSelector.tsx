@@ -17,11 +17,11 @@ export const RoleSelector: React.FC = () => {
   ];
 
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-3">
+    <div className="bg-[#EFEFEF] border border-slate-200 rounded-2xl p-3 mb-3">
       <div className="text-xs font-semibold text-slate-700 px-1 pb-2 flex items-center justify-between flex-wrap gap-1">
         <span>สลับสิทธิ์การใช้งาน (จำลองการทดสอบ)</span>
         <span className="text-slate-500 font-normal">
-          กำลังใช้งาน: <strong className="text-emerald-700 font-bold">{currentUser.full_name}</strong>
+          กำลังใช้งาน: <strong className="text-[#19705F] font-bold">{currentUser.full_name}</strong>
         </span>
       </div>
 
@@ -34,7 +34,7 @@ export const RoleSelector: React.FC = () => {
               onClick={() => switchRole(r.role)}
               className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 isActive
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-[#19705F] text-white shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
               }`}
             >
@@ -52,7 +52,7 @@ export const RoleSelector: React.FC = () => {
           <select
             value={currentUser.id}
             onChange={(e) => selectSpecificMentor(e.target.value)}
-            className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-[#2BA185]"
           >
             {mentors.map((m) => (
               <option key={m.id} value={m.id}>

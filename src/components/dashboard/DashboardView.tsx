@@ -124,13 +124,13 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                   <span>สถิติการส่งงาน (Work Analytics)</span>
                 </h3>
-                <div className="flex items-center gap-3 mt-0.5 text-[10px] text-slate-400 font-medium">
+                <div className="flex items-center gap-3 mt-0.5 text-[10px] text-slate-500 font-semibold">
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="w-2 h-2 rounded-full bg-[#2BA185]" />
                     อนุมัติแล้ว
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-indigo-300" />
+                    <span className="w-2 h-2 rounded-full bg-[#6FD098]" />
                     รอตรวจ
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value as 'This year' | 'This month' | 'This week')}
-                  className="appearance-none bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1 pr-6 text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1 pr-6 text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer"
                 >
                   <option value="This year">This year</option>
                   <option value="This month">This month</option>
@@ -164,32 +164,32 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end relative group">
                     {m.isHighlighted && (
-                      <div className="absolute -top-8 z-10 bg-[#161922] text-white px-2 py-0.5 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-slate-700/60 pointer-events-none">
-                        <span className="text-emerald-400">● 10 ผ่าน</span> • <span className="text-indigo-300">○ 2 รอ</span>
+                      <div className="absolute -top-8 z-10 bg-[#19705F] text-white px-2 py-0.5 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-[#145C4E] pointer-events-none">
+                        <span className="text-[#6FD098]">● 10 ผ่าน</span> • <span className="text-[#C2EAD6]">○ 2 รอ</span>
                       </div>
                     )}
 
                     <div
                       className={`w-full max-w-[20px] rounded-t-lg transition-all duration-300 flex flex-col justify-end overflow-hidden ${
                         m.isHighlighted
-                          ? 'ring-2 ring-emerald-400 shadow-xs'
+                          ? 'ring-2 ring-[#6FD098] shadow-xs'
                           : 'opacity-90 group-hover:opacity-100'
                       }`}
                       style={{ height: `${totalHeight * 0.78}%` }}
                     >
                       <div
-                        className={`w-full ${m.isHighlighted ? 'bg-indigo-400' : 'bg-[#d8dbf3]'}`}
+                        className={`w-full ${m.isHighlighted ? 'bg-[#6FD098]' : 'bg-[#E2F4EB]'}`}
                         style={{ height: `${(m.pending / totalHeight) * 100}%` }}
                       />
                       <div
-                        className={`w-full ${m.isHighlighted ? 'bg-emerald-500' : 'bg-[#bac2ea]'}`}
+                        className={`w-full ${m.isHighlighted ? 'bg-[#2BA185]' : 'bg-[#C2EAD6]'}`}
                         style={{ height: `${(m.approved / totalHeight) * 100}%` }}
                       />
                     </div>
 
                     <span
                       className={`text-[9px] mt-0.5 font-medium ${
-                        m.isHighlighted ? 'text-slate-900 font-extrabold' : 'text-slate-400'
+                        m.isHighlighted ? 'text-[#19705F] font-extrabold' : 'text-slate-400'
                       }`}
                     >
                       {m.name}
@@ -220,7 +220,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#f1f5f9"
+                    stroke="#EFEFEF"
                     strokeWidth="11"
                   />
                   <circle
@@ -228,7 +228,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#10b981"
+                    stroke="#2BA185"
                     strokeWidth="11"
                     strokeDasharray={`${Math.max(approvalRate * 2.38, 20)} 238`}
                     strokeLinecap="round"
@@ -238,7 +238,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#818cf8"
+                    stroke="#6FD098"
                     strokeWidth="11"
                     strokeDasharray={`${Math.max(pendingRate * 2.38, 15)} 238`}
                     strokeDashoffset={`-${Math.max(approvalRate * 2.38, 20)}`}
@@ -246,7 +246,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-sm font-black text-slate-900 leading-none">
+                  <span className="text-sm font-black text-[#19705F] leading-none">
                     {approvalRate || 65}%
                   </span>
                   <span className="text-[8px] text-slate-400 font-medium">อนุมัติ</span>
@@ -256,11 +256,11 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               {/* Donut Legend */}
               <div className="flex items-center justify-around gap-1 pt-1.5 border-t border-slate-100 text-[9px] sm:text-[10px]">
                 <span className="flex items-center gap-1 text-slate-600 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2BA185]" />
                   ผ่าน {approvalRate}%
                 </span>
                 <span className="flex items-center gap-1 text-slate-600 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6FD098]" />
                   รอ {pendingRate}%
                 </span>
                 <span className="flex items-center gap-1 text-slate-600 font-medium">
@@ -360,7 +360,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ค้นหาชื่องาน..."
-                    className="w-full pl-7 pr-6 py-1 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-emerald-500 rounded-xl text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                    className="w-full pl-7 pr-6 py-1 bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 focus:border-[#2BA185] rounded-xl text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#6FD098] transition"
                   />
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5 pointer-events-none" />
                   {searchQuery && (
@@ -382,8 +382,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     onClick={() => setStatusFilter('all')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       statusFilter === 'all'
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                        ? 'bg-[#19705F] text-white shadow-2xs'
+                        : 'bg-[#EFEFEF] text-slate-700 hover:bg-slate-200 border border-slate-200/80'
                     }`}
                   >
                     ทั้งหมด
@@ -393,11 +393,11 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     onClick={() => setStatusFilter('approved')}
                     className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
                       statusFilter === 'approved'
-                        ? 'bg-emerald-600 text-white shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                        ? 'bg-[#2BA185] text-white shadow-2xs'
+                        : 'bg-[#EFEFEF] text-slate-700 hover:bg-slate-200 border border-slate-200/80'
                     }`}
                   >
-                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                    <CheckCircle2 className="w-2.5 h-2.5 text-[#6FD098]" />
                     อนุมัติแล้ว
                   </button>
 
@@ -405,11 +405,11 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     onClick={() => setStatusFilter('pending')}
                     className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
                       statusFilter === 'pending'
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                        ? 'bg-[#6FD098] text-[#0E3E35] font-black shadow-2xs'
+                        : 'bg-[#EFEFEF] text-slate-700 hover:bg-slate-200 border border-slate-200/80'
                     }`}
                   >
-                    <Clock className="w-2.5 h-2.5 text-indigo-400" />
+                    <Clock className="w-2.5 h-2.5 text-[#19705F]" />
                     รอตรวจ
                   </button>
 
@@ -418,7 +418,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
                       statusFilter === 'revision_required'
                         ? 'bg-rose-600 text-white shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                        : 'bg-[#EFEFEF] text-slate-700 hover:bg-slate-200 border border-slate-200/80'
                     }`}
                   >
                     <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
@@ -432,7 +432,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="appearance-none bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg px-2 py-1 pr-5 font-bold text-slate-700 focus:outline-none cursor-pointer text-[10px]"
+                    className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2 py-1 pr-5 font-bold text-slate-700 focus:outline-none cursor-pointer text-[10px]"
                   >
                     <option value="all">ทุกหมวดหมู่</option>
                     {allCategories.map((c) => (
@@ -549,13 +549,13 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
         {/* ======================= RIGHT COLUMN CARDS (4 COLS) ======================= */}
         <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 h-full">
           
-          {/* Card A: Dark Card (Total Logs) */}
-          <div className="bg-[#141720] text-white rounded-2xl p-3 sm:p-3.5 shadow-md border border-slate-800/80 relative overflow-hidden flex flex-col justify-between">
+          {/* Card A: Dark Card (Total Logs) - 30% Secondary structure */}
+          <div className="bg-[#19705F] text-white rounded-2xl p-3 sm:p-3.5 shadow-pine border border-[#145C4E] relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
                 จำนวนบันทึกงานรวม
               </span>
-              <span className="p-1 rounded-lg bg-slate-800/80 text-emerald-400">
+              <span className="p-1 rounded-lg bg-[#145C4E] text-[#6FD098]">
                 <Sparkles className="w-3 h-3" />
               </span>
             </div>
@@ -564,35 +564,35 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               <span className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {totalLogs > 0 ? totalLogs : 12}
               </span>
-              <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded-full border border-emerald-800/50">
+              <span className="inline-flex items-center text-[10px] font-bold text-[#6FD098] bg-[#0E3E35] px-1.5 py-0.5 rounded-full border border-[#2BA185]/40">
                 <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
                 +15%
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mb-2.5">
+            <p className="text-[10px] text-white/70 mb-2.5">
               รายการบันทึกการฝึกงานในระบบ
             </p>
 
             {/* Segmented Dual Bar */}
             <div className="space-y-1.5">
-              <div className="w-full h-6 flex rounded-lg overflow-hidden p-0.5 bg-slate-800/80 border border-slate-700/60">
+              <div className="w-full h-6 flex rounded-lg overflow-hidden p-0.5 bg-[#145C4E] border border-[#125447]">
                 <div
-                  className="h-full rounded-md bg-emerald-500 flex items-center justify-center text-[9px] font-black text-white px-1.5 transition-all"
+                  className="h-full rounded-md bg-[#6FD098] flex items-center justify-center text-[9px] font-black text-[#0E3E35] px-1.5 transition-all shadow-xs"
                   style={{ width: `${Math.max(approvalRate, 40)}%` }}
                 >
                   {approvalRate || 45}%
                 </div>
                 <div
-                  className="h-full rounded-md bg-white flex items-center justify-center text-[9px] font-black text-slate-900 px-1.5 ml-1 transition-all"
+                  className="h-full rounded-md bg-white flex items-center justify-center text-[9px] font-black text-[#19705F] px-1.5 ml-1 transition-all"
                   style={{ width: `${100 - Math.max(approvalRate, 40)}%` }}
                 >
                   {100 - (approvalRate || 45)}%
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium px-1">
+              <div className="flex items-center justify-between text-[10px] text-white/70 font-medium px-1">
                 <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6FD098]" />
                   อนุมัติสำเร็จ
                 </span>
                 <span className="flex items-center gap-1">
@@ -603,22 +603,22 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Card B: Lavender Gradient Card (Pending Reviews) */}
-          <div className="bg-gradient-to-br from-[#c9cfec] via-[#dde1f7] to-[#ede7f8] text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-indigo-200/50 flex flex-col justify-between">
+          {/* Card B: Fresh Mint/Teal Gradient Card (Pending Reviews) */}
+          <div className="bg-gradient-to-br from-[#E2F5EC] via-[#EDF9F3] to-[#F7FCF9] text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold text-slate-700">
+              <span className="text-[11px] font-bold text-[#19705F]">
                 งานที่รอการตรวจสอบ
               </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-white/70 text-slate-700 text-[9px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-md bg-white text-[#19705F] text-[9px] font-bold border border-[#C2EAD6]">
                 Pending
               </span>
             </div>
 
             <div className="flex items-baseline gap-2 mb-0.5">
-              <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-2xl font-black text-[#19705F] tracking-tight">
                 {pendingLogs} งาน
               </span>
-              <span className="text-[10px] font-bold text-indigo-700">
+              <span className="text-[10px] font-bold text-[#2BA185]">
                 รอพี่เลี้ยง/หัวหน้า
               </span>
             </div>
@@ -631,13 +631,13 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               {[25, 45, 60, 35, 75, 90, 50, 40].map((h, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
                   {i === 5 && (
-                    <div className="absolute -top-5 bg-[#161922] text-white px-1.5 py-0.5 rounded text-[8px] font-bold shadow-md">
+                    <div className="absolute -top-5 bg-[#19705F] text-white px-1.5 py-0.5 rounded text-[8px] font-bold shadow-md">
                       {pendingLogs} งาน
                     </div>
                   )}
                   <div
                     className={`w-full rounded-sm transition-all ${
-                      i === 5 ? 'bg-[#161922]' : 'bg-white/80'
+                      i === 5 ? 'bg-[#19705F]' : 'bg-white/90'
                     }`}
                     style={{ height: `${h}%` }}
                   />
@@ -646,13 +646,13 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Card C: Warm Cream Card (Approved Logs) */}
-          <div className="bg-gradient-to-br from-[#fff7ee] via-[#fffbf6] to-white text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-amber-200/60 flex flex-col justify-between">
+          {/* Card C: Soft Mint Cream Card (Approved Logs) */}
+          <div className="bg-gradient-to-br from-[#F0FAF5] via-[#F8FCFA] to-white text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold text-slate-700">
+              <span className="text-[11px] font-bold text-[#19705F]">
                 อนุมัติสำเร็จแล้ว (Approved)
               </span>
-              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[9px] font-bold text-[#19705F] bg-[#E2F4EB] px-1.5 py-0.5 rounded-full border border-[#C2EAD6]">
                 +100%
               </span>
             </div>
@@ -672,11 +672,11 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 <path
                   d="M 0,28 Q 30,36 60,24 T 120,30 T 170,14 T 200,9"
                   fill="none"
-                  stroke="#f97316"
+                  stroke="#2BA185"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 />
-                <circle cx="200" cy="9" r="3.5" fill="#1e293b" stroke="#ffffff" strokeWidth="1.5" />
+                <circle cx="200" cy="9" r="3.5" fill="#19705F" stroke="#6FD098" strokeWidth="2" />
               </svg>
               <div className="flex justify-between text-[8px] text-slate-400 font-semibold">
                 <span>1 Jul</span>
@@ -686,12 +686,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Card D: Action Button */}
+          {/* Card D: Action Button in 30% Secondary Dark Pine */}
           <div>
             {isTrainee ? (
               <button
                 onClick={onOpenCreate}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#141720] hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[3]" />
                 <span>บันทึกงานใหม่วันนี้</span>
@@ -699,7 +699,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             ) : (
               <button
                 onClick={() => onNavigateTab && onNavigateTab('reviews')}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#141720] hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
               >
                 <CheckSquare className="w-3.5 h-3.5 stroke-[3]" />
                 <span>เปิดหน้าตรวจสอบงาน</span>

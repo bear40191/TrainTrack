@@ -235,7 +235,7 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
         </div>
 
         {/* Modal Footer / Action Bar */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 safe-bottom">
+        <div className="p-4 bg-[#EFEFEF] border-t border-slate-200 safe-bottom">
           {/* กรณีนักศึกษา: ส่งงาน / ส่งแก้ไข */}
           {canTraineeSubmit ? (
             <div className="flex items-center justify-between gap-3">

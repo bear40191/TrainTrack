@@ -120,12 +120,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenN
               onClick={() => setShowRoleSelector(!showRoleSelector)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${
                 showRoleSelector
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700'
+                  ? 'bg-[#19705F] text-white border-[#19705F]'
+                  : 'bg-white border-slate-200 hover:border-[#2BA185] text-slate-700'
               }`}
               title="สลับสิทธิ์การใช้งาน (Role Switcher)"
             >
-              <Users2 className="w-3.5 h-3.5 text-emerald-600" />
+              <Users2 className="w-3.5 h-3.5 text-[#2BA185]" />
               <span className="hidden md:inline">สลับสิทธิ์</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>

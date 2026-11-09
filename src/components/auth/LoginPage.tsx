@@ -131,10 +131,10 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/80 border border-slate-200/80 p-6 sm:p-8 overflow-hidden transition-all">
+    <div className="min-h-screen bg-[#EFEFEF] flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-300/60 border border-slate-200/80 p-6 sm:p-8 overflow-hidden transition-all">
         
-        {/* Vector Illustration matching user reference */}
+        {/* Vector Illustration matching 60-30-10 palette */}
         <div className="w-full flex items-center justify-center py-2 mb-2">
           <div className="relative w-64 h-44 sm:w-72 sm:h-48 flex items-center justify-center">
             <svg
@@ -144,74 +144,74 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
               className="w-full h-full drop-shadow-sm select-none"
             >
               {/* Background ambient bubble */}
-              <circle cx="160" cy="100" r="85" fill="#f0fdf4" />
+              <circle cx="160" cy="100" r="85" fill="#F2F9F6" />
               
-              {/* Floating Code Badges in Emerald / Tech style */}
+              {/* Floating Code Badges in Brand style */}
               <g transform="translate(68, 25)">
-                <rect width="36" height="30" rx="8" fill="#FBBF24" />
+                <rect width="36" height="30" rx="8" fill="#2BA185" />
                 <circle cx="17" cy="14" r="5" stroke="#FFFFFF" strokeWidth="2.5" />
                 <line x1="21" y1="18" x2="25" y2="22" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
               </g>
 
               <g transform="translate(185, 20)">
-                <rect width="52" height="32" rx="8" fill="#F87171" />
-                <text x="14" y="22" fill="#FFFFFF" fontSize="16" fontWeight="bold" fontFamily="monospace">
+                <rect width="52" height="32" rx="8" fill="#19705F" />
+                <text x="14" y="22" fill="#6FD098" fontSize="16" fontWeight="bold" fontFamily="monospace">
                   &lt;/&gt;
                 </text>
               </g>
 
               <g transform="translate(235, 75)">
-                <rect width="32" height="28" rx="8" fill="#818CF8" />
+                <rect width="32" height="28" rx="8" fill="#2BA185" />
                 <text x="10" y="20" fill="#FFFFFF" fontSize="15" fontWeight="bold" fontFamily="monospace">
                   {'{ }'}
                 </text>
               </g>
 
               {/* Background Monitor / Window */}
-              <rect x="95" y="45" width="80" height="55" rx="6" fill="#1E293B" />
-              <rect x="100" y="52" width="70" height="42" rx="4" fill="#0F172A" />
-              <rect x="106" y="58" width="22" height="3" rx="1.5" fill="#34D399" />
-              <rect x="132" y="58" width="16" height="3" rx="1.5" fill="#60A5FA" />
-              <rect x="106" y="65" width="40" height="3" rx="1.5" fill="#94A3B8" />
-              <rect x="112" y="72" width="30" height="3" rx="1.5" fill="#F472B6" />
-              <rect x="112" y="79" width="45" height="3" rx="1.5" fill="#34D399" />
-              <rect x="106" y="86" width="20" height="3" rx="1.5" fill="#60A5FA" />
+              <rect x="95" y="45" width="80" height="55" rx="6" fill="#19705F" />
+              <rect x="100" y="52" width="70" height="42" rx="4" fill="#0E3E35" />
+              <rect x="106" y="58" width="22" height="3" rx="1.5" fill="#6FD098" />
+              <rect x="132" y="58" width="16" height="3" rx="1.5" fill="#2BA185" />
+              <rect x="106" y="65" width="40" height="3" rx="1.5" fill="#C2EAD6" />
+              <rect x="112" y="72" width="30" height="3" rx="1.5" fill="#6FD098" />
+              <rect x="112" y="79" width="45" height="3" rx="1.5" fill="#9BDEC0" />
+              <rect x="106" y="86" width="20" height="3" rx="1.5" fill="#2BA185" />
 
               {/* Plant on right */}
               <g transform="translate(245, 120)">
-                <path d="M5 25 C0 10, -5 0, -10 -10 C5 0, 15 10, 10 25 Z" fill="#059669" />
-                <path d="M12 25 C15 12, 22 2, 30 -5 C22 8, 18 18, 14 25 Z" fill="#10B981" />
-                <path d="M8 25 C10 15, 8 5, 5 -12 C12 -2, 16 12, 10 25 Z" fill="#34D399" />
-                <rect x="2" y="25" width="18" height="15" rx="3" fill="#D97706" />
+                <path d="M5 25 C0 10, -5 0, -10 -10 C5 0, 15 10, 10 25 Z" fill="#19705F" />
+                <path d="M12 25 C15 12, 22 2, 30 -5 C22 8, 18 18, 14 25 Z" fill="#2BA185" />
+                <path d="M8 25 C10 15, 8 5, 5 -12 C12 -2, 16 12, 10 25 Z" fill="#6FD098" />
+                <rect x="2" y="25" width="18" height="15" rx="3" fill="#145C4E" />
               </g>
 
               {/* Desk */}
-              <rect x="55" y="140" width="210" height="6" rx="3" fill="#0F172A" />
-              <rect x="75" y="146" width="6" height="30" rx="2" fill="#334155" />
-              <rect x="238" y="146" width="6" height="30" rx="2" fill="#334155" />
+              <rect x="55" y="140" width="210" height="6" rx="3" fill="#19705F" />
+              <rect x="75" y="146" width="6" height="30" rx="2" fill="#145C4E" />
+              <rect x="238" y="146" width="6" height="30" rx="2" fill="#145C4E" />
 
               {/* Laptop on desk */}
-              <path d="M115 140 L125 105 L165 105 L175 140 Z" fill="#CBD5E1" />
-              <rect x="127" y="108" width="36" height="26" rx="2" fill="#1E293B" />
-              <rect x="110" y="138" width="70" height="4" rx="2" fill="#94A3B8" />
+              <path d="M115 140 L125 105 L165 105 L175 140 Z" fill="#E2F4EB" />
+              <rect x="127" y="108" width="36" height="26" rx="2" fill="#19705F" />
+              <rect x="110" y="138" width="70" height="4" rx="2" fill="#9BDEC0" />
 
-              {/* Yellow Chair Back */}
-              <rect x="215" y="105" width="8" height="42" rx="4" fill="#F59E0B" />
-              <rect x="195" y="140" width="30" height="6" rx="3" fill="#F59E0B" />
-              <rect x="207" y="146" width="5" height="25" rx="2" fill="#475569" />
+              {/* Chair Back */}
+              <rect x="215" y="105" width="8" height="42" rx="4" fill="#6FD098" />
+              <rect x="195" y="140" width="30" height="6" rx="3" fill="#6FD098" />
+              <rect x="207" y="146" width="5" height="25" rx="2" fill="#2BA185" />
 
               {/* Person Working */}
               <circle cx="205" cy="88" r="14" fill="#FDBA74" />
-              <path d="M193 84 C193 72, 216 72, 218 80 C210 82, 204 88, 193 84 Z" fill="#1E293B" />
-              <path d="M190 102 C190 102, 175 120, 168 130 L180 134 L192 118 L196 140 L218 140 L216 102 Z" fill="#F97316" />
+              <path d="M193 84 C193 72, 216 72, 218 80 C210 82, 204 88, 193 84 Z" fill="#19705F" />
+              <path d="M190 102 C190 102, 175 120, 168 130 L180 134 L192 118 L196 140 L218 140 L216 102 Z" fill="#2BA185" />
               <path d="M188 106 L158 126 L148 135 L158 137 L174 126 Z" fill="#FDBA74" />
-              <path d="M194 140 L188 175 L160 175 L175 140 Z" fill="#3B82F6" />
-              <path d="M206 140 L208 175 L192 175 L196 140 Z" fill="#1D4ED8" />
-              <ellipse cx="166" cy="177" rx="12" ry="4" fill="#1E293B" />
-              <ellipse cx="202" cy="177" rx="10" ry="4" fill="#1E293B" />
+              <path d="M194 140 L188 175 L160 175 L175 140 Z" fill="#19705F" />
+              <path d="M206 140 L208 175 L192 175 L196 140 Z" fill="#145C4E" />
+              <ellipse cx="166" cy="177" rx="12" ry="4" fill="#0E3E35" />
+              <ellipse cx="202" cy="177" rx="10" ry="4" fill="#0E3E35" />
               
               {/* Floor line */}
-              <line x1="40" y1="180" x2="280" y2="180" stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
+              <line x1="40" y1="180" x2="280" y2="180" stroke="#C2EAD6" strokeWidth="3" strokeLinecap="round" />
             </svg>
           </div>
         </div>
@@ -219,7 +219,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
         {/* Title matching user reference */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-xs shadow-sm">
+            <div className="w-7 h-7 rounded-lg bg-[#19705F] flex items-center justify-center text-white font-black text-xs shadow-sm">
               TT
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -289,18 +289,18 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
               <button
                 type="button"
                 onClick={handleOpenForgotPassword}
-                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition cursor-pointer"
+                className="text-xs font-semibold text-[#19705F] hover:text-[#2BA185] hover:underline transition cursor-pointer"
               >
                 ลืมรหัสผ่าน? (เปลี่ยนรหัสผ่าน)
               </button>
             </div>
           </div>
 
-          {/* Login Button in Theme Green (Emerald) */}
+          {/* Login Button in 30% Secondary Dark Pine */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3 px-4 bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold rounded-xl shadow-md shadow-[#19705F]/25 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

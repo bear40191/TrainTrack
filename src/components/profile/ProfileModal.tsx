@@ -296,7 +296,7 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
           </div>
 
           {/* ระบบเปลี่ยนรหัสผ่านสำหรับผู้ใช้ปัจจุบัน */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+          <div className="bg-[#EFEFEF] border border-slate-200/80 rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-emerald-600" />
