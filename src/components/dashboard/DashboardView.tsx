@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
+import { MentorLeadDashboard } from './MentorLeadDashboard';
 import {
   TrendingUp,
   Plus,
@@ -114,6 +115,16 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
     { name: 'Nov', approved: 80, pending: 35 },
     { name: 'Dec', approved: 65, pending: 25 },
   ];
+
+  // ถ้าเป็นพี่เลี้ยง (mentor) หรือหัวหน้า (lead) ให้แสดงแดชบอร์ดแบบง่ายๆ มีไม่กี่หัวข้อ พร้อมอนิเมชั่น
+  if (currentUser.role === 'mentor' || currentUser.role === 'lead') {
+    return (
+      <MentorLeadDashboard
+        onSelectLog={onSelectLog}
+        onNavigateTab={onNavigateTab}
+      />
+    );
+  }
 
   return (
     <div className="h-full flex flex-col justify-between font-sans">
