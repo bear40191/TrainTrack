@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import {
@@ -28,6 +28,13 @@ interface Props {
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
   const { currentUser, workLogs, mentors } = useAppStore();
   const [selectedPeriod, setSelectedPeriod] = useState<'This year' | 'This month' | 'This week'>('This year');
+
+  // Trigger state สำหรับการโหลด Animation ชาร์ตและกราฟิก
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 40);
+    return () => clearTimeout(timer);
+  }, []);
 
   // State สำหรับระบบฟิลเตอร์ของ "รายการงานล่าสุด"
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,8 +124,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
         {/* ใช้ flex-col และดันส่วนบนให้ชิดกัน (gap-2.5) แล้วขยาย Card 4 ด้วย flex-1 */}
         <div className="lg:col-span-8 flex flex-col gap-2.5 h-full min-h-0">
           
-          {/* Card 1: Work Analytics Bar Chart */}
-          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs relative shrink-0">
+          {/* Card 1: Work Analytics Bar Chart with Staggered Grow Animation */}
+          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs relative shrink-0 animate-fade-in-up [animation-delay:50ms]">
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div>
                 <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
@@ -141,7 +148,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value as 'This year' | 'This month' | 'This week')}
-                  className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1 pr-6 text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1 pr-6 text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"
                 >
                   <option value="This year">This year</option>
                   <option value="This month">This month</option>
@@ -151,7 +158,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </div>
             </div>
 
-            {/* Bar Chart Visualization */}
+            {/* Bar Chart Visualization with animated bars & hover lift */}
             <div className="h-24 sm:h-28 w-full flex items-end justify-between gap-1 sm:gap-2 pt-2 pb-0.5 px-1 relative">
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-30">
                 <div className="border-b border-dashed border-slate-200 w-full" />
@@ -164,18 +171,21 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end relative group">
                     {m.isHighlighted && (
-                      <div className="absolute -top-8 z-10 bg-[#19705F] text-white px-2 py-0.5 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-[#145C4E] pointer-events-none">
+                      <div className="absolute -top-8 z-10 bg-[#19705F] text-white px-2 py-0.5 rounded-lg shadow-lg text-[9px] font-bold whitespace-nowrap border border-[#145C4E] pointer-events-none animate-float-slow">
                         <span className="text-[#6FD098]">● 10 ผ่าน</span> • <span className="text-[#C2EAD6]">○ 2 รอ</span>
                       </div>
                     )}
 
                     <div
-                      className={`w-full max-w-[20px] rounded-t-lg transition-all duration-300 flex flex-col justify-end overflow-hidden ${
+                      className={`w-full max-w-[20px] rounded-t-lg transition-all duration-500 ease-out flex flex-col justify-end overflow-hidden cursor-pointer ${
                         m.isHighlighted
-                          ? 'ring-2 ring-[#6FD098] shadow-xs'
-                          : 'opacity-90 group-hover:opacity-100'
+                          ? 'ring-2 ring-[#6FD098] shadow-xs group-hover:scale-110 group-hover:-translate-y-1'
+                          : 'opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:-translate-y-0.5'
                       }`}
-                      style={{ height: `${totalHeight * 0.78}%` }}
+                      style={{
+                        height: isMounted ? `${totalHeight * 0.78}%` : '6%',
+                        transition: `height 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 30}ms, transform 0.2s ease`
+                      }}
                     >
                       <div
                         className={`w-full ${m.isHighlighted ? 'bg-[#6FD098]' : 'bg-[#E2F4EB]'}`}
@@ -188,8 +198,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     </div>
 
                     <span
-                      className={`text-[9px] mt-0.5 font-medium ${
-                        m.isHighlighted ? 'text-[#19705F] font-extrabold' : 'text-slate-400'
+                      className={`text-[9px] mt-0.5 font-medium transition-colors duration-150 ${
+                        m.isHighlighted ? 'text-[#19705F] font-extrabold' : 'text-slate-400 group-hover:text-slate-700'
                       }`}
                     >
                       {m.name}
@@ -203,8 +213,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
           {/* Middle Row: ดันขึ้นมาชิดด้านบน (gap-2.5) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
             
-            {/* Card 2: Donut Chart (Status) */}
-            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            {/* Card 2: Donut Chart (Status) with SVG Stroke Drawing Animation */}
+            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:130ms] hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between mb-0.5">
                 <h4 className="text-xs font-extrabold text-slate-900">
                   สัดส่วนสถานะงาน (Status)
@@ -213,8 +223,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </div>
 
               {/* Donut Graphic */}
-              <div className="flex items-center justify-center py-0.5 relative">
-                <svg className="w-16 h-16 sm:w-20 sm:h-20 -rotate-90" viewBox="0 0 100 100">
+              <div className="flex items-center justify-center py-0.5 relative group cursor-default">
+                <svg className="w-16 h-16 sm:w-20 sm:h-20 -rotate-90 group-hover:scale-105 transition-transform duration-300" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -230,8 +240,9 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     fill="transparent"
                     stroke="#2BA185"
                     strokeWidth="11"
-                    strokeDasharray={`${Math.max(approvalRate * 2.38, 20)} 238`}
+                    strokeDasharray={`${isMounted ? Math.max(approvalRate * 2.38, 20) : 0} 238`}
                     strokeLinecap="round"
+                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s' }}
                   />
                   <circle
                     cx="50"
@@ -240,13 +251,14 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     fill="transparent"
                     stroke="#6FD098"
                     strokeWidth="11"
-                    strokeDasharray={`${Math.max(pendingRate * 2.38, 15)} 238`}
-                    strokeDashoffset={`-${Math.max(approvalRate * 2.38, 20)}`}
+                    strokeDasharray={`${isMounted ? Math.max(pendingRate * 2.38, 15) : 0} 238`}
+                    strokeDashoffset={`-${isMounted ? Math.max(approvalRate * 2.38, 20) : 0}`}
                     strokeLinecap="round"
+                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s' }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-sm font-black text-[#19705F] leading-none">
+                  <span className={`text-sm font-black text-[#19705F] leading-none transition-all duration-700 ${isMounted ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}>
                     {approvalRate || 65}%
                   </span>
                   <span className="text-[8px] text-slate-400 font-medium">อนุมัติ</span>
@@ -255,32 +267,32 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
 
               {/* Donut Legend */}
               <div className="flex items-center justify-around gap-1 pt-1.5 border-t border-slate-100 text-[9px] sm:text-[10px]">
-                <span className="flex items-center gap-1 text-slate-600 font-medium">
+                <span className="flex items-center gap-1 text-slate-600 font-medium hover:text-[#2BA185] transition-colors cursor-default">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2BA185]" />
                   ผ่าน {approvalRate}%
                 </span>
-                <span className="flex items-center gap-1 text-slate-600 font-medium">
+                <span className="flex items-center gap-1 text-slate-600 font-medium hover:text-[#6FD098] transition-colors cursor-default">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#6FD098]" />
                   รอ {pendingRate}%
                 </span>
-                <span className="flex items-center gap-1 text-slate-600 font-medium">
+                <span className="flex items-center gap-1 text-slate-600 font-medium hover:text-rose-500 transition-colors cursor-default">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                   แก้ {revisionRate}%
                 </span>
               </div>
             </div>
 
-            {/* Card 3: Last Activity */}
-            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            {/* Card 3: Last Activity with Interactive Avatars & List Hover */}
+            <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:190ms] hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between mb-1">
                 <h4 className="text-xs font-extrabold text-slate-900">
                   กิจกรรมล่าสุด (Last Activity)
                 </h4>
-                <div className="flex -space-x-1 overflow-hidden">
+                <div className="flex -space-x-1 overflow-hidden p-0.5">
                   {mentors.slice(0, 3).map((m, i) => (
                     <div
                       key={i}
-                      className="w-4 h-4 rounded-full bg-emerald-100 border border-white text-emerald-800 text-[8px] font-bold flex items-center justify-center"
+                      className="w-4 h-4 rounded-full bg-emerald-100 border border-white text-emerald-800 text-[8px] font-bold flex items-center justify-center hover:scale-125 hover:z-20 transition-transform duration-200 cursor-pointer shadow-xs"
                       title={m.full_name}
                     >
                       {m.full_name.charAt(0)}
@@ -295,14 +307,14 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   <div
                     key={log.id || i}
                     onClick={() => onSelectLog(log)}
-                    className="flex items-center justify-between gap-2 p-1 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                    className="flex items-center justify-between gap-2 p-1 rounded-xl hover:bg-[#EFEFEF]/70 hover:translate-x-1 transition-all duration-150 cursor-pointer group"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-5 h-5 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-[9px]">
+                      <div className="w-5 h-5 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-[9px] group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150">
                         {log.trainee?.full_name?.charAt(0) || 'U'}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-800 truncate">
+                        <p className="text-[10px] font-bold text-slate-800 truncate group-hover:text-[#19705F] transition-colors duration-150">
                           {log.title}
                         </p>
                         <p className="text-[8px] text-slate-400 truncate">
@@ -312,7 +324,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     </div>
 
                     <span
-                      className={`shrink-0 px-2 py-0.5 rounded-full text-[8px] font-bold border ${
+                      className={`shrink-0 px-2 py-0.5 rounded-full text-[8px] font-bold border transition-transform duration-150 group-hover:scale-105 ${
                         log.status === 'approved'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : log.status === 'revision_required'
@@ -329,10 +341,10 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               <div className="pt-0.5 text-right">
                 <button
                   onClick={() => onNavigateTab && onNavigateTab(isTrainee ? 'my-logs' : 'reviews')}
-                  className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+                  className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 group/btn transition-colors"
                 >
                   <span>ดูกิจกรรมทั้งหมด</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform duration-150" />
                 </button>
               </div>
             </div>
@@ -340,7 +352,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
           </div>
 
           {/* Card 4: ขยายรายงานล่าสุด (Work Logs Table) ขึ้น พร้อมระบบฟิลเตอร์ครบวงจร! */}
-          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex-1 flex flex-col min-h-0 overflow-hidden animate-fade-in-up [animation-delay:250ms]">
             {/* Header + Filter Bar */}
             <div className="space-y-2 mb-2 pb-2 border-b border-slate-100 shrink-0">
               <div className="flex items-center justify-between gap-2">
@@ -464,15 +476,15 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                       <tr
                         key={log.id}
                         onClick={() => onSelectLog(log)}
-                        className="hover:bg-slate-50/80 transition cursor-pointer group"
+                        className="hover:bg-[#EFEFEF]/60 transition-colors duration-150 cursor-pointer group"
                       >
                         <td className="py-2 px-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition">
+                            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150">
                               <FileText className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-slate-900 group-hover:text-emerald-900 line-clamp-1 text-[11px] transition">
+                              <p className="font-bold text-slate-900 group-hover:text-[#19705F] line-clamp-1 text-[11px] transition-colors duration-150">
                                 {log.title}
                               </p>
                               <p className="text-[9px] text-slate-400">
@@ -491,7 +503,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                         </td>
                         <td className="py-2 px-2 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border transition-transform duration-150 group-hover:scale-105 ${
                               log.status === 'approved'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : log.status === 'revision_required'
@@ -517,7 +529,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                               e.stopPropagation();
                               onSelectLog(log);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-white group-hover:bg-emerald-600 group-hover:text-white border border-slate-200 group-hover:border-emerald-600 text-slate-700 font-bold text-[10px] transition shadow-2xs"
+                            className="px-2.5 py-1 rounded-lg bg-white group-hover:bg-[#19705F] group-hover:text-white border border-slate-200 group-hover:border-[#19705F] text-slate-700 font-bold text-[10px] transition-all duration-150 shadow-2xs hover:scale-105 active:scale-95"
                           >
                             ดูรายละเอียด
                           </button>
@@ -549,13 +561,13 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
         {/* ======================= RIGHT COLUMN CARDS (4 COLS) ======================= */}
         <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 h-full">
           
-          {/* Card A: Dark Card (Total Logs) - 30% Secondary structure */}
-          <div className="bg-[#19705F] text-white rounded-2xl p-3 sm:p-3.5 shadow-pine border border-[#145C4E] relative overflow-hidden flex flex-col justify-between">
+          {/* Card A: Dark Card (Total Logs) - 30% Secondary structure with Staggered Entrance & Sparkle Pulse */}
+          <div className="bg-[#19705F] text-white rounded-2xl p-3 sm:p-3.5 shadow-pine border border-[#145C4E] relative overflow-hidden flex flex-col justify-between animate-fade-in-right [animation-delay:100ms] hover:shadow-xl transition-shadow duration-300">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
                 จำนวนบันทึกงานรวม
               </span>
-              <span className="p-1 rounded-lg bg-[#145C4E] text-[#6FD098]">
+              <span className="p-1 rounded-lg bg-[#145C4E] text-[#6FD098] animate-pulse-glow">
                 <Sparkles className="w-3 h-3" />
               </span>
             </div>
@@ -564,7 +576,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               <span className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {totalLogs > 0 ? totalLogs : 12}
               </span>
-              <span className="inline-flex items-center text-[10px] font-bold text-[#6FD098] bg-[#0E3E35] px-1.5 py-0.5 rounded-full border border-[#2BA185]/40">
+              <span className="inline-flex items-center text-[10px] font-bold text-[#6FD098] bg-[#0E3E35] px-1.5 py-0.5 rounded-full border border-[#2BA185]/40 hover:scale-105 transition-transform duration-150 cursor-default">
                 <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
                 +15%
               </span>
@@ -573,18 +585,18 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               รายการบันทึกการฝึกงานในระบบ
             </p>
 
-            {/* Segmented Dual Bar */}
+            {/* Segmented Dual Bar with smooth width transition */}
             <div className="space-y-1.5">
               <div className="w-full h-6 flex rounded-lg overflow-hidden p-0.5 bg-[#145C4E] border border-[#125447]">
                 <div
-                  className="h-full rounded-md bg-[#6FD098] flex items-center justify-center text-[9px] font-black text-[#0E3E35] px-1.5 transition-all shadow-xs"
-                  style={{ width: `${Math.max(approvalRate, 40)}%` }}
+                  className="h-full rounded-md bg-[#6FD098] flex items-center justify-center text-[9px] font-black text-[#0E3E35] px-1.5 shadow-xs transition-all duration-1000 ease-out"
+                  style={{ width: isMounted ? `${Math.max(approvalRate, 40)}%` : '0%' }}
                 >
                   {approvalRate || 45}%
                 </div>
                 <div
-                  className="h-full rounded-md bg-white flex items-center justify-center text-[9px] font-black text-[#19705F] px-1.5 ml-1 transition-all"
-                  style={{ width: `${100 - Math.max(approvalRate, 40)}%` }}
+                  className="h-full rounded-md bg-white flex items-center justify-center text-[9px] font-black text-[#19705F] px-1.5 ml-1 transition-all duration-1000 ease-out"
+                  style={{ width: isMounted ? `${100 - Math.max(approvalRate, 40)}%` : '0%' }}
                 >
                   {100 - (approvalRate || 45)}%
                 </div>
@@ -603,8 +615,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Card B: Fresh Mint/Teal Gradient Card (Pending Reviews) */}
-          <div className="bg-gradient-to-br from-[#E2F5EC] via-[#EDF9F3] to-[#F7FCF9] text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between">
+          {/* Card B: Fresh Mint/Teal Gradient Card with Animated Mini Bars & Floating Tooltip */}
+          <div className="bg-gradient-to-br from-[#E2F5EC] via-[#EDF9F3] to-[#F7FCF9] text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between animate-fade-in-right [animation-delay:180ms] hover:shadow-md transition-shadow duration-300">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-[#19705F]">
                 งานที่รอการตรวจสอบ
@@ -626,33 +638,36 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               {pendingLogs > 0 ? 'มีรายการรอการยืนยันในคิว' : 'ไม่มีงานค้างตรวจในขณะนี้'}
             </p>
 
-            {/* Mini Bar Sparklines */}
+            {/* Mini Bar Sparklines with staggered height grow */}
             <div className="h-9 flex items-end justify-between gap-1 pt-1 px-1 relative">
               {[25, 45, 60, 35, 75, 90, 50, 40].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative group">
                   {i === 5 && (
-                    <div className="absolute -top-5 bg-[#19705F] text-white px-1.5 py-0.5 rounded text-[8px] font-bold shadow-md">
+                    <div className="absolute -top-5 bg-[#19705F] text-white px-1.5 py-0.5 rounded text-[8px] font-bold shadow-md animate-float-slow">
                       {pendingLogs} งาน
                     </div>
                   )}
                   <div
-                    className={`w-full rounded-sm transition-all ${
-                      i === 5 ? 'bg-[#19705F]' : 'bg-white/90'
+                    className={`w-full rounded-sm transition-all duration-500 cursor-pointer ${
+                      i === 5 ? 'bg-[#19705F] group-hover:bg-[#145C4E]' : 'bg-white/90 group-hover:bg-white'
                     }`}
-                    style={{ height: `${h}%` }}
+                    style={{
+                      height: isMounted ? `${h}%` : '8%',
+                      transition: `height 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 35 + 250}ms`
+                    }}
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Card C: Soft Mint Cream Card (Approved Logs) */}
-          <div className="bg-gradient-to-br from-[#F0FAF5] via-[#F8FCFA] to-white text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between">
+          {/* Card C: Soft Mint Cream Card with Wave Stroke Drawing & Glowing Dot */}
+          <div className="bg-gradient-to-br from-[#F0FAF5] via-[#F8FCFA] to-white text-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#C2EAD6] flex flex-col justify-between animate-fade-in-right [animation-delay:260ms] hover:shadow-md transition-shadow duration-300">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-[#19705F]">
                 อนุมัติสำเร็จแล้ว (Approved)
               </span>
-              <span className="text-[9px] font-bold text-[#19705F] bg-[#E2F4EB] px-1.5 py-0.5 rounded-full border border-[#C2EAD6]">
+              <span className="text-[9px] font-bold text-[#19705F] bg-[#E2F4EB] px-1.5 py-0.5 rounded-full border border-[#C2EAD6] hover:scale-105 transition-transform duration-150 cursor-default">
                 +100%
               </span>
             </div>
@@ -666,7 +681,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               ผ่านเกณฑ์การประเมินเรียบร้อย
             </p>
 
-            {/* Wave Sparkline */}
+            {/* Wave Sparkline with drawing animation & pulsing point */}
             <div className="h-8 w-full relative pt-1">
               <svg className="w-full h-full overflow-visible" viewBox="0 0 200 40" preserveAspectRatio="none">
                 <path
@@ -675,7 +690,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   stroke="#2BA185"
                   strokeWidth="2.5"
                   strokeLinecap="round"
+                  strokeDasharray="250"
+                  strokeDashoffset={isMounted ? 0 : 250}
+                  style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s' }}
                 />
+                {/* Glowing pulse ring behind the end point */}
+                <circle cx="200" cy="9" r="6" fill="#6FD098" className="animate-ping-slow origin-center opacity-60" />
                 <circle cx="200" cy="9" r="3.5" fill="#19705F" stroke="#6FD098" strokeWidth="2" />
               </svg>
               <div className="flex justify-between text-[8px] text-slate-400 font-semibold">
@@ -686,22 +706,22 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
           </div>
 
-          {/* Card D: Action Button in 30% Secondary Dark Pine */}
-          <div>
+          {/* Card D: Action Button with Hover Lift & Rotating Icon */}
+          <div className="animate-fade-in-right [animation-delay:340ms]">
             {isTrainee ? (
               <button
                 onClick={onOpenCreate}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 hover:shadow-lg hover:shadow-[#19705F]/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <Plus className="w-3.5 h-3.5 stroke-[3] group-hover:rotate-90 group-hover:scale-110 transition-transform duration-200" />
                 <span>บันทึกงานใหม่วันนี้</span>
               </button>
             ) : (
               <button
                 onClick={() => onNavigateTab && onNavigateTab('reviews')}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] active:bg-[#0E3E35] text-white font-bold text-xs shadow-md shadow-[#19705F]/20 hover:shadow-lg hover:shadow-[#19705F]/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group"
               >
-                <CheckSquare className="w-3.5 h-3.5 stroke-[3]" />
+                <CheckSquare className="w-3.5 h-3.5 stroke-[3] group-hover:scale-110 transition-transform duration-200" />
                 <span>เปิดหน้าตรวจสอบงาน</span>
               </button>
             )}
