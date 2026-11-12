@@ -1,13 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { Attachment } from '@/lib/types';
-import { Camera, Send, Save, AlertCircle, X, Plus, Trash2, UserCheck } from 'lucide-react';
+import { Camera, Send, Save, AlertCircle, X, Plus, Trash2, UserCheck, Calendar } from 'lucide-react';
 
 interface Props {
   onSuccess: () => void;
 }
+
+// ฟังก์ชันแปลง YYYY-MM-DD เป็น วันที่/เดือน/ปี (DD/MM/YYYY)
+const formatToDMY = (isoDate: string) => {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+  }
+  return isoDate;
+};
+
+// ฟังก์ชันแปลง วันที่/เดือน/ปี (DD/MM/YYYY) กลับเป็น YYYY-MM-DD
+const parseFromDMY = (dmyStr: string): string | null => {
+  const parts = dmyStr.trim().split(/[/.-]/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    let year = parseInt(parts[2], 10);
+
+    // รองรับกรณีผู้ใช้กรอกเป็นปี พ.ศ. (เช่น 2569 -> 2026)
+    if (year > 2400) {
+      year -= 543;
+    }
+
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1990 && year <= 2100) {
+      const dStr = day.toString().padStart(2, '0');
+      const mStr = month.toString().padStart(2, '0');
+      return `${year}-${mStr}-${dStr}`;
+    }
+  }
+  return null;
+};
 
 export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
   const { categories, mentors, addCategory, removeCategory, createWorkLog } = useAppStore();
@@ -15,11 +47,41 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0]);
-  const [hoursSpent, setHoursSpent] = useState<number>(8);
+  const [dateDisplay, setDateDisplay] = useState(() => formatToDMY(new Date().toISOString().split('T')[0]));
+  const datePickerRef = useRef<HTMLInputElement>(null);
+
   const [category, setCategory] = useState<string>(categories[0] || 'พัฒนาระบบ');
   const [assignedMentorId, setAssignedMentorId] = useState<string>(mentors[0]?.id || 'user-mentor-1');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // จัดการการเปลี่ยนวันที่จาก Date Picker
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setWorkDate(e.target.value);
+      setDateDisplay(formatToDMY(e.target.value));
+    }
+  };
+
+  // จัดการเมื่อผู้ใช้พิมพ์วันที่ในกล่องข้อความ
+  const handleDateTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDateDisplay(val);
+    const parsed = parseFromDMY(val);
+    if (parsed) {
+      setWorkDate(parsed);
+    }
+  };
+
+  const handleDateBlur = () => {
+    const parsed = parseFromDMY(dateDisplay);
+    if (parsed) {
+      setWorkDate(parsed);
+      setDateDisplay(formatToDMY(parsed));
+    } else {
+      setDateDisplay(formatToDMY(workDate));
+    }
+  };
 
   // การจัดการหมวดหมู่ (เพิ่ม / ลบ)
   const [isManagingCategory, setIsManagingCategory] = useState(false);
@@ -79,7 +141,7 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
       work_date: workDate,
       title: title.trim(),
       description: description.trim(),
-      hours_spent: Number(hoursSpent),
+      hours_spent: 0,
       category,
       status: isDraft ? 'draft' : 'pending_mentor',
       submitted_at: isDraft ? null : new Date().toISOString(),
@@ -134,29 +196,53 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
           </p>
         </div>
 
-        {/* วันที่ & ชั่วโมง */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">วันที่ปฏิบัติงาน</label>
+        {/* วันที่ปฏิบัติงาน (รูปแบบ วันที่/เดือน/ปี พร้อมระบบเลือกปฏิทิน และตัดจำนวนชั่วโมงออก) */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-[#19705F]" />
+              <span>วันที่ปฏิบัติงาน</span>
+            </span>
+            <span className="text-xs text-slate-400 font-normal">
+              รูปแบบ: วันที่/เดือน/ปี (DD/MM/YYYY)
+            </span>
+          </label>
+          <div className="relative">
             <input
+              type="text"
+              value={dateDisplay}
+              onChange={handleDateTextChange}
+              onBlur={handleDateBlur}
+              placeholder="วว/ดด/ปปปป (เช่น 12/11/2026)"
+              className="w-full bg-[#EFEFEF] hover:bg-slate-100/80 border border-slate-200 hover:border-slate-300 rounded-xl pl-4 pr-12 py-3 text-sm text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[#2BA185] focus:bg-white transition shadow-xs"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  datePickerRef.current?.showPicker?.();
+                } catch {
+                  datePickerRef.current?.focus();
+                }
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-[#19705F] hover:bg-slate-200/60 rounded-lg transition"
+              title="เปิดปฏิทินเลือกวันที่"
+            >
+              <Calendar className="w-4 h-4 text-[#19705F]" />
+            </button>
+            {/* ซ่อน Native Date Input เพื่อรองรับการเปิดปฏิทินในทุกเบราว์เซอร์ */}
+            <input
+              ref={datePickerRef}
               type="date"
               value={workDate}
-              onChange={(e) => setWorkDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+              onChange={handleDatePickerChange}
+              className="sr-only absolute pointer-events-none opacity-0"
+              tabIndex={-1}
             />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">จำนวนชั่วโมง (ชม.)</label>
-            <input
-              type="number"
-              min="1"
-              max="24"
-              step="0.5"
-              value={hoursSpent}
-              onChange={(e) => setHoursSpent(parseFloat(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-            />
-          </div>
+          <p className="text-[11px] text-slate-400 mt-1.5">
+            * แสดงและบันทึกในรูปแบบ วันที่/เดือน/ปี เช่น {dateDisplay || '12/11/2026'}
+          </p>
         </div>
 
         {/* หมวดหมู่งาน + ปุ่มเพิ่ม/ลบหมวดหมู่ */}
