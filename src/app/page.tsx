@@ -56,33 +56,39 @@ export default function HomePage() {
 
         {/* Dynamic Tab Views */}
         <main
-          className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 pt-1 pb-2 min-h-0 ${
-            activeTab === 'dashboard' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto pb-24'
+          className={`flex-1 w-full min-h-0 ${
+            activeTab === 'dashboard' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'
           }`}
         >
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              onOpenCreate={() => setActiveTab('create')}
-              onSelectLog={(log) => setSelectedLog(log)}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-            />
-          )}
+          <div
+            className={`w-full max-w-7xl mx-auto px-3 sm:px-5 pt-1 min-h-0 ${
+              activeTab === 'dashboard' ? 'flex-1 flex flex-col pb-2' : 'pb-24'
+            }`}
+          >
+            {activeTab === 'dashboard' && (
+              <DashboardView
+                onOpenCreate={() => setActiveTab('create')}
+                onSelectLog={(log) => setSelectedLog(log)}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-          {activeTab === 'create' && (
-            <div className="pb-20 max-w-3xl mx-auto">
-              <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
-            </div>
-          )}
+            {activeTab === 'create' && (
+              <div className="pb-20 max-w-3xl mx-auto">
+                <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
+              </div>
+            )}
 
-          {activeTab === 'my-logs' && (
-            <MyLogsView onSelectLog={(log) => setSelectedLog(log)} />
-          )}
+            {activeTab === 'my-logs' && (
+              <MyLogsView onSelectLog={(log) => setSelectedLog(log)} />
+            )}
 
-          {activeTab === 'reviews' && (
-            <ReviewListView onSelectLog={(log) => setSelectedLog(log)} />
-          )}
+            {activeTab === 'reviews' && (
+              <ReviewListView onSelectLog={(log) => setSelectedLog(log)} />
+            )}
 
-          {activeTab === 'admin' && <AdminView />}
+            {activeTab === 'admin' && <AdminView />}
+          </div>
         </main>
       </div>
 
