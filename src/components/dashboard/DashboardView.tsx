@@ -3,7 +3,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
+import { TabKey } from '@/components/layout/TabBar';
 import { MentorLeadDashboard } from './MentorLeadDashboard';
+import { AdminDashboardView } from './AdminDashboardView';
 import {
   TrendingUp,
   Plus,
@@ -23,7 +25,7 @@ import {
 interface Props {
   onOpenCreate: () => void;
   onSelectLog: (log: WorkLog) => void;
-  onNavigateTab?: (tab: 'reviews' | 'my-logs') => void;
+  onNavigateTab?: (tab: TabKey) => void;
 }
 
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
@@ -120,6 +122,16 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
   if (currentUser.role === 'mentor' || currentUser.role === 'lead') {
     return (
       <MentorLeadDashboard
+        onSelectLog={onSelectLog}
+        onNavigateTab={onNavigateTab}
+      />
+    );
+  }
+
+  // ถ้าเป็นผู้ดูแลระบบ (admin) ให้แสดงแดชบอร์ดภาพรวมระบบ
+  if (currentUser.role === 'admin') {
+    return (
+      <AdminDashboardView
         onSelectLog={onSelectLog}
         onNavigateTab={onNavigateTab}
       />
