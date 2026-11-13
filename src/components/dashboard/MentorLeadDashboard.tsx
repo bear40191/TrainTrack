@@ -24,7 +24,7 @@ interface Props {
 }
 
 export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTab }) => {
-  const { currentUser, workLogs } = useAppStore();
+  const { currentUser, workLogs, trainees, mentors } = useAppStore();
 
   const isMentor = currentUser.role === 'mentor';
   const isLead = currentUser.role === 'lead';
@@ -58,56 +58,30 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
     return workLogs.filter((l) => l.status === 'revision_required').length;
   }, [workLogs]);
 
-  // 2. ข้อมูลสรุปนักศึกษาในความดูแล
+  // 2. ข้อมูลสรุปนักศึกษาในความดูแล (ดึงจาก trainees ใน store ร่วมกับ workLogs)
   const traineesList = useMemo(() => {
-    const map = new Map<string, {
-      id: string;
-      full_name: string;
-      email: string;
-      avatar_url?: string | null;
-      position?: string;
-      totalLogs: number;
-      approvedLogs: number;
-      pendingLogs: number;
-      lastDate?: string;
-    }>();
+    return trainees.map((t) => {
+      const studentLogs = workLogs.filter((l) => l.trainee_id === t.id);
+      const totalLogs = studentLogs.length;
+      const approvedLogs = studentLogs.filter((l) => l.status === 'approved').length;
+      const pendingLogs = studentLogs.filter((l) => l.status === 'pending_mentor' || l.status === 'pending_lead').length;
+      const assignedMentor = mentors.find((m) => m.id === t.mentor_id);
 
-    workLogs.forEach((l) => {
-      if (l.trainee) {
-        const t = map.get(l.trainee_id) || {
-          id: l.trainee_id,
-          full_name: l.trainee.full_name || 'นักศึกษาฝึกงาน',
-          email: l.trainee.email || '',
-          avatar_url: l.trainee.avatar_url,
-          position: 'นักศึกษาฝึกงาน (Intern)',
-          totalLogs: 0,
-          approvedLogs: 0,
-          pendingLogs: 0,
-          lastDate: l.work_date,
-        };
-        t.totalLogs += 1;
-        if (l.status === 'approved') t.approvedLogs += 1;
-        if (l.status === 'pending_mentor' || l.status === 'pending_lead') t.pendingLogs += 1;
-        map.set(l.trainee_id, t);
-      }
+      return {
+        id: t.id,
+        full_name: t.full_name,
+        email: t.email,
+        avatar_url: t.avatar_url,
+        position: t.position || 'นักศึกษาฝึกงาน (Intern)',
+        mentor_id: t.mentor_id,
+        mentor_name: assignedMentor?.full_name?.split(' ')[0] || null,
+        isMyTrainee: isMentor && t.mentor_id === currentUser.id,
+        totalLogs,
+        approvedLogs,
+        pendingLogs,
+      };
     });
-
-    // กรณีไม่มีข้อมูลให้แสดงตัวอย่าง default
-    if (map.size === 0) {
-      map.set('user-trainee-1', {
-        id: 'user-trainee-1',
-        full_name: 'กิตติศักดิ์ พัฒนาดี',
-        email: 'kittisak.trainee@traintrack.app',
-        position: 'Frontend Developer Intern',
-        totalLogs: 2,
-        approvedLogs: 1,
-        pendingLogs: 1,
-        lastDate: '2026-11-05',
-      });
-    }
-
-    return Array.from(map.values());
-  }, [workLogs]);
+  }, [trainees, workLogs, mentors, isMentor, currentUser.id]);
 
   // 3. กิจกรรมล่าสุด
   const recentActivities = useMemo(() => {
@@ -394,11 +368,18 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
                         {t.full_name.charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#19705F] transition-colors">
-                          {t.full_name}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#19705F] transition-colors">
+                            {t.full_name}
+                          </p>
+                          {t.isMyTrainee && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold bg-[#E2F4EB] text-[#19705F] border border-[#C2EAD6]">
+                              ดูแลโดยคุณ
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-slate-400 truncate">
-                          {t.position || t.email}
+                          {t.position || t.email} {t.mentor_name && !t.isMyTrainee ? `• พี่เลี้ยง: ${t.mentor_name}` : ''}
                         </p>
                       </div>
                     </div>

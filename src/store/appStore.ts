@@ -83,8 +83,34 @@ export const MOCK_USERS: Record<Role, Profile> = {
   },
 };
 
-export const ALL_DEMO_USERS: Profile[] = [
+export const INITIAL_TRAINEES: Profile[] = [
   MOCK_USERS.trainee,
+  {
+    id: 'user-trainee-2',
+    full_name: 'ณิชา มณีรัตน์ (นักศึกษาฝึกงาน)',
+    email: 'nicha.backend@traintrack.app',
+    role: 'trainee',
+    team_id: 'team-mobile-1',
+    mentor_id: 'user-mentor-2',
+    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    position: 'Backend Developer Intern',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+  {
+    id: 'user-trainee-3',
+    full_name: 'ธนกฤต สุขเกษม (นักศึกษาฝึกงาน)',
+    email: 'thanakrit.devops@traintrack.app',
+    role: 'trainee',
+    team_id: 'team-mobile-1',
+    mentor_id: 'user-mentor-3',
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    position: 'Mobile DevOps Intern',
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+  },
+];
+
+export const ALL_DEMO_USERS: Profile[] = [
+  ...INITIAL_TRAINEES,
   ...MOCK_MENTORS,
   MOCK_USERS.lead,
   MOCK_USERS.admin,
@@ -213,6 +239,7 @@ const INITIAL_LOGS: WorkLog[] = [
 interface AppState {
   currentUser: Profile;
   mentors: Profile[];
+  trainees: Profile[];
   workLogs: WorkLog[];
   categories: string[];
   notifications: AppNotification[];
@@ -226,6 +253,12 @@ interface AppState {
   selectSpecificMentor: (mentorId: string) => void;
   addCategory: (name: string) => void;
   removeCategory: (name: string) => void;
+  // Trainee Management (สำหรับ Admin / Lead)
+  addTrainee: (data: { full_name: string; email: string; position?: string; mentor_id?: string | null }) => { success: boolean; message: string };
+  updateTrainee: (id: string, updates: Partial<Profile>) => void;
+  removeTrainee: (id: string) => void;
+  assignMentorToTrainee: (traineeId: string, mentorId: string | null) => void;
+  // WorkLog Actions
   createWorkLog: (log: Omit<WorkLog, 'id' | 'created_at' | 'updated_at' | 'revision_count' | 'trainee'>) => void;
   updateWorkLog: (id: string, updates: Partial<WorkLog>) => void;
   submitWorkLog: (id: string) => void;
@@ -250,7 +283,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   changePassword: (email: string, newPassword: string) => {
     const trimmed = email.trim().toLowerCase();
-    const userExists = ALL_DEMO_USERS.some((u) => u.email.toLowerCase() === trimmed);
+    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    const userExists = allUsers.some((u) => u.email.toLowerCase() === trimmed);
     if (!userExists) {
       return { success: false, message: 'ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบ' };
     }
@@ -273,7 +307,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   login: (email: string, password?: string) => {
     const trimmed = email.trim().toLowerCase();
-    const found = ALL_DEMO_USERS.find(
+    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    const found = allUsers.find(
       (u) => u.email.toLowerCase() === trimmed
     );
     if (found) {
@@ -286,7 +321,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     // Match by keywords if typed loosely
     if (trimmed.includes('trainee') || trimmed.includes('นักศึกษา')) {
-      set({ currentUser: MOCK_USERS.trainee, isAuthenticated: true });
+      const firstTrainee = get().trainees[0] || MOCK_USERS.trainee;
+      set({ currentUser: firstTrainee, isAuthenticated: true });
       return true;
     }
     if (trimmed.includes('somchai') || trimmed.includes('frontend')) {
@@ -317,6 +353,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   currentUser: MOCK_USERS.trainee,
   mentors: MOCK_MENTORS,
+  trainees: INITIAL_TRAINEES,
   workLogs: INITIAL_LOGS,
   categories: DEFAULT_CATEGORIES,
   notifications: [
@@ -336,6 +373,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (role === 'mentor') {
       const targetMentor = get().mentors.find(m => m.id === (mentorId || 'user-mentor-1')) || get().mentors[0];
       set({ currentUser: targetMentor });
+    } else if (role === 'trainee') {
+      const firstTrainee = get().trainees[0] || MOCK_USERS.trainee;
+      set({ currentUser: firstTrainee });
     } else {
       set({ currentUser: MOCK_USERS[role] });
     }
@@ -346,6 +386,54 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (target) {
       set({ currentUser: target });
     }
+  },
+
+  addTrainee: (data) => {
+    const trimmedEmail = data.email.trim().toLowerCase();
+    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    if (allUsers.some(u => u.email.toLowerCase() === trimmedEmail)) {
+      return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
+    }
+
+    const newTrainee: Profile = {
+      id: 'user-trainee-' + Date.now(),
+      full_name: data.full_name.trim(),
+      email: trimmedEmail,
+      role: 'trainee',
+      team_id: 'team-mobile-1',
+      mentor_id: data.mentor_id || null,
+      avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`,
+      position: data.position?.trim() || 'นักศึกษาฝึกงาน (Intern)',
+      created_at: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      trainees: [newTrainee, ...state.trainees],
+      userPasswords: {
+        ...state.userPasswords,
+        [trimmedEmail]: '123456',
+      },
+    }));
+
+    return { success: true, message: 'เพิ่มนักศึกษาเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+  },
+
+  updateTrainee: (id, updates) => {
+    set((state) => ({
+      trainees: state.trainees.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    }));
+  },
+
+  removeTrainee: (id) => {
+    set((state) => ({
+      trainees: state.trainees.filter((t) => t.id !== id),
+    }));
+  },
+
+  assignMentorToTrainee: (traineeId, mentorId) => {
+    set((state) => ({
+      trainees: state.trainees.map((t) => (t.id === traineeId ? { ...t, mentor_id: mentorId } : t)),
+    }));
   },
 
   addCategory: (name: string) => {
