@@ -109,10 +109,14 @@ export const INITIAL_TRAINEES: Profile[] = [
   },
 ];
 
+export const INITIAL_LEADS: Profile[] = [
+  MOCK_USERS.lead,
+];
+
 export const ALL_DEMO_USERS: Profile[] = [
   ...INITIAL_TRAINEES,
   ...MOCK_MENTORS,
-  MOCK_USERS.lead,
+  ...INITIAL_LEADS,
   MOCK_USERS.admin,
 ];
 
@@ -239,6 +243,7 @@ const INITIAL_LOGS: WorkLog[] = [
 interface AppState {
   currentUser: Profile;
   mentors: Profile[];
+  leads: Profile[];
   trainees: Profile[];
   workLogs: WorkLog[];
   categories: string[];
@@ -258,6 +263,14 @@ interface AppState {
   updateTrainee: (id: string, updates: Partial<Profile>) => void;
   removeTrainee: (id: string) => void;
   assignMentorToTrainee: (traineeId: string, mentorId: string | null) => void;
+  // Mentor Management (เพิ่ม / แก้ไข / ลด พี่เลี้ยง)
+  addMentor: (data: { full_name: string; email: string; position?: string; avatar_url?: string }) => { success: boolean; message: string };
+  updateMentor: (id: string, updates: Partial<Profile>) => void;
+  removeMentor: (id: string) => { success: boolean; message: string };
+  // Lead Management (เพิ่ม / แก้ไข / ลด หัวหน้า)
+  addLead: (data: { full_name: string; email: string; position?: string; avatar_url?: string }) => { success: boolean; message: string };
+  updateLead: (id: string, updates: Partial<Profile>) => void;
+  removeLead: (id: string) => { success: boolean; message: string };
   // WorkLog Actions
   createWorkLog: (log: Omit<WorkLog, 'id' | 'created_at' | 'updated_at' | 'revision_count' | 'trainee'>) => void;
   updateWorkLog: (id: string, updates: Partial<WorkLog>) => void;
@@ -283,7 +296,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   changePassword: (email: string, newPassword: string) => {
     const trimmed = email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
     const userExists = allUsers.some((u) => u.email.toLowerCase() === trimmed);
     if (!userExists) {
       return { success: false, message: 'ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบ' };
@@ -307,7 +320,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   login: (email: string, password?: string) => {
     const trimmed = email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
     const found = allUsers.find(
       (u) => u.email.toLowerCase() === trimmed
     );
@@ -326,19 +339,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       return true;
     }
     if (trimmed.includes('somchai') || trimmed.includes('frontend')) {
-      set({ currentUser: MOCK_MENTORS[0], isAuthenticated: true });
+      set({ currentUser: get().mentors[0] || MOCK_MENTORS[0], isAuthenticated: true });
       return true;
     }
     if (trimmed.includes('vipada') || trimmed.includes('backend')) {
-      set({ currentUser: MOCK_MENTORS[1], isAuthenticated: true });
+      set({ currentUser: get().mentors[1] || MOCK_MENTORS[1], isAuthenticated: true });
       return true;
     }
     if (trimmed.includes('arnon') || trimmed.includes('devops')) {
-      set({ currentUser: MOCK_MENTORS[2], isAuthenticated: true });
+      set({ currentUser: get().mentors[2] || MOCK_MENTORS[2], isAuthenticated: true });
       return true;
     }
     if (trimmed.includes('lead') || trimmed.includes('หัวหน้า')) {
-      set({ currentUser: MOCK_USERS.lead, isAuthenticated: true });
+      set({ currentUser: get().leads[0] || MOCK_USERS.lead, isAuthenticated: true });
       return true;
     }
     if (trimmed.includes('admin') || trimmed.includes('ผู้ดูแล')) {
@@ -353,6 +366,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   currentUser: MOCK_USERS.trainee,
   mentors: MOCK_MENTORS,
+  leads: INITIAL_LEADS,
   trainees: INITIAL_TRAINEES,
   workLogs: INITIAL_LOGS,
   categories: DEFAULT_CATEGORIES,
@@ -371,8 +385,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   switchRole: (role: Role, mentorId?: string) => {
     if (role === 'mentor') {
-      const targetMentor = get().mentors.find(m => m.id === (mentorId || 'user-mentor-1')) || get().mentors[0];
+      const targetMentor = get().mentors.find(m => m.id === (mentorId || get().mentors[0]?.id)) || get().mentors[0];
       set({ currentUser: targetMentor });
+    } else if (role === 'lead') {
+      const firstLead = get().leads[0] || MOCK_USERS.lead;
+      set({ currentUser: firstLead });
     } else if (role === 'trainee') {
       const firstTrainee = get().trainees[0] || MOCK_USERS.trainee;
       set({ currentUser: firstTrainee });
@@ -390,7 +407,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addTrainee: (data) => {
     const trimmedEmail = data.email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, MOCK_USERS.lead, MOCK_USERS.admin];
+    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
     if (allUsers.some(u => u.email.toLowerCase() === trimmedEmail)) {
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
@@ -434,6 +451,112 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       trainees: state.trainees.map((t) => (t.id === traineeId ? { ...t, mentor_id: mentorId } : t)),
     }));
+  },
+
+  addMentor: (data) => {
+    const trimmedEmail = data.email.trim().toLowerCase();
+    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    if (allUsers.some((u) => u.email.toLowerCase() === trimmedEmail)) {
+      return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
+    }
+
+    const newMentor: Profile = {
+      id: 'user-mentor-' + Date.now(),
+      full_name: data.full_name.trim(),
+      email: trimmedEmail,
+      role: 'mentor',
+      team_id: 'team-mobile-1',
+      mentor_id: null,
+      avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      position: data.position?.trim() || 'Senior Developer / Mentor',
+      created_at: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      mentors: [...state.mentors, newMentor],
+      userPasswords: {
+        ...state.userPasswords,
+        [trimmedEmail]: '123456',
+      },
+    }));
+
+    return { success: true, message: 'เพิ่มพี่เลี้ยงใหม่เรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+  },
+
+  updateMentor: (id, updates) => {
+    set((state) => ({
+      mentors: state.mentors.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+    }));
+  },
+
+  removeMentor: (id) => {
+    const state = get();
+    if (state.mentors.length <= 1) {
+      return { success: false, message: 'ไม่สามารถลบได้ เนื่องจากต้องมีพี่เลี้ยงอย่างน้อย 1 คนในระบบ' };
+    }
+    if (state.currentUser.id === id) {
+      return { success: false, message: 'ไม่สามารถลบพี่เลี้ยงที่กำลังเข้าสู่ระบบอยู่ในขณะนี้ได้' };
+    }
+
+    set({
+      mentors: state.mentors.filter((m) => m.id !== id),
+      // ปลดพี่เลี้ยงออกจากนักศึกษาที่เคยผูกไว้
+      trainees: state.trainees.map((t) => (t.mentor_id === id ? { ...t, mentor_id: null } : t)),
+    });
+
+    return { success: true, message: 'ลบข้อมูลพี่เลี้ยงเรียบร้อยแล้ว' };
+  },
+
+  addLead: (data) => {
+    const trimmedEmail = data.email.trim().toLowerCase();
+    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    if (allUsers.some((u) => u.email.toLowerCase() === trimmedEmail)) {
+      return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
+    }
+
+    const newLead: Profile = {
+      id: 'user-lead-' + Date.now(),
+      full_name: data.full_name.trim(),
+      email: trimmedEmail,
+      role: 'lead',
+      team_id: 'team-mobile-1',
+      mentor_id: null,
+      avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+      position: data.position?.trim() || 'Lead Engineer / Head of Mentors',
+      created_at: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      leads: [...state.leads, newLead],
+      userPasswords: {
+        ...state.userPasswords,
+        [trimmedEmail]: '123456',
+      },
+    }));
+
+    return { success: true, message: 'เพิ่มหัวหน้าพี่เลี้ยงเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+  },
+
+  updateLead: (id, updates) => {
+    set((state) => ({
+      leads: state.leads.map((l) => (l.id === id ? { ...l, ...updates } : l)),
+    }));
+  },
+
+  removeLead: (id) => {
+    const state = get();
+    if (state.leads.length <= 1) {
+      return { success: false, message: 'ไม่สามารถลบได้ เนื่องจากต้องมีหัวหน้าพี่เลี้ยงอย่างน้อย 1 คนในระบบ' };
+    }
+    if (state.currentUser.id === id) {
+      return { success: false, message: 'ไม่สามารถลบหัวหน้าที่กำลังเข้าสู่ระบบอยู่ในขณะนี้ได้' };
+    }
+
+    set({
+      leads: state.leads.filter((l) => l.id !== id),
+    });
+
+    return { success: true, message: 'ลบหัวหน้าพี่เลี้ยงเรียบร้อยแล้ว' };
   },
 
   addCategory: (name: string) => {
