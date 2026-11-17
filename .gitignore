@@ -27,6 +27,19 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+
+# secrets & credentials
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+credentials.json
+service-account*.json
 
 # vercel
 .vercel

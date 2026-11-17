@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { Attachment } from '@/lib/types';
+import { sanitizeText } from '@/lib/security';
 import { Camera, Send, Save, AlertCircle, X, Plus, Trash2, UserCheck, Calendar } from 'lucide-react';
 
 interface Props {
@@ -124,11 +125,14 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
   };
 
   const handleSubmit = (isDraft: boolean) => {
-    if (!title.trim()) {
+    const cleanedTitle = sanitizeText(title, 200);
+    const cleanedDescription = sanitizeText(description, 5000);
+
+    if (!cleanedTitle) {
       setError('กรุณาระบุหัวข้องาน');
       return;
     }
-    if (!description.trim() || description.length < 5) {
+    if (!cleanedDescription || cleanedDescription.length < 5) {
       setError('กรุณาระบุรายละเอียดงานอย่างน้อย 5 ตัวอักษร');
       return;
     }
@@ -139,8 +143,8 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
       trainee_id: '',
       assigned_mentor_id: assignedMentorId,
       work_date: workDate,
-      title: title.trim(),
-      description: description.trim(),
+      title: cleanedTitle,
+      description: cleanedDescription,
       hours_spent: 0,
       category,
       status: isDraft ? 'draft' : 'pending_mentor',

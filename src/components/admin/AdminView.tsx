@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { Profile } from '@/lib/types';
+import { sanitizeCsvCell } from '@/lib/security';
 import {
   ShieldCheck,
   UserCheck,
@@ -309,23 +310,23 @@ export const AdminView: React.FC = () => {
   // Statistics
   const totalApproved = useMemo(() => workLogs.filter((l) => l.status === 'approved').length, [workLogs]);
 
-  // Export CSV Handler
+  // Export CSV Handler (Secured against CSV / Formula Injection CWE-1236)
   const handleExportCSV = () => {
     const csvContent = [
-      ['ID', 'Date', 'Trainee', 'Mentor', 'Title', 'Hours', 'Status', 'Category'],
+      ['ID', 'Date', 'Trainee', 'Mentor', 'Title', 'Hours', 'Status', 'Category'].map(sanitizeCsvCell),
       ...workLogs.map((l) => [
-        l.id,
-        l.work_date,
-        `"${l.trainee?.full_name || 'Trainee'}"`,
-        `"${l.assigned_mentor?.full_name || 'Mentor'}"`,
-        `"${l.title.replace(/"/g, '""')}"`,
-        l.hours_spent,
-        l.status,
-        `"${l.category.replace(/"/g, '""')}"`,
+        sanitizeCsvCell(l.id),
+        sanitizeCsvCell(l.work_date),
+        sanitizeCsvCell(l.trainee?.full_name || 'Trainee'),
+        sanitizeCsvCell(l.assigned_mentor?.full_name || 'Mentor'),
+        sanitizeCsvCell(l.title),
+        sanitizeCsvCell(l.hours_spent),
+        sanitizeCsvCell(l.status),
+        sanitizeCsvCell(l.category),
       ]),
     ]
       .map((e) => e.join(','))
-      .join('\n');
+      .join('\r\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
