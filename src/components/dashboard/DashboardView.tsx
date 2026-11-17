@@ -222,8 +222,9 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             </div>
 
             {/* Card 3: Last Activity with Interactive Avatars & List Hover */}
-            <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:190ms] hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col animate-fade-in-up [animation-delay:190ms] hover:shadow-md transition-shadow duration-300">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                 <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#2BA185]" />
                   <span>กิจกรรมล่าสุด (Last Activity)</span>
@@ -241,16 +242,16 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 </div>
               </div>
 
-              {/* Activity rows - เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุดเสมอ */}
-              <div className="space-y-1.5">
+              {/* Activity rows - เริ่มต้นทันทีใต้หัวข้อ เรียงจากบนลงล่างตามที่ต้องการ */}
+              <div className="space-y-2 flex-1">
                 {recentTraineeActivities.slice(0, 2).map((log, i) => (
                   <div
                     key={log.id || i}
                     onClick={() => onSelectLog(log)}
-                    className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#EFEFEF]/70 hover:translate-x-1 transition-all duration-150 cursor-pointer group"
+                    className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50/70 hover:bg-[#EFEFEF] hover:translate-x-1 transition-all duration-150 cursor-pointer group border border-slate-100/80"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-xs group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150 relative">
+                      <div className="w-7 h-7 rounded-xl bg-white border border-slate-200/80 text-slate-700 flex items-center justify-center shrink-0 font-bold text-xs group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150 relative shadow-2xs">
                         {log.trainee?.full_name?.charAt(0) || 'U'}
                         {i === 0 && (
                           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#6FD098] border border-white" title="กิจกรรมล่าสุด" />
@@ -267,7 +268,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate">
+                        <p className="text-[11px] text-slate-400 truncate mt-0.5">
                           {log.work_date} • {log.assigned_mentor?.full_name?.split(' ')[0] || 'พี่เลี้ยง'}
                         </p>
                       </div>
@@ -288,7 +289,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 ))}
               </div>
 
-              <div className="pt-1 text-right">
+              {/* Footer */}
+              <div className="mt-auto pt-2 text-right">
                 <button
                   onClick={() => onNavigateTab && onNavigateTab(isTrainee ? 'my-logs' : 'reviews')}
                   className="text-xs font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 group/btn transition-colors"
