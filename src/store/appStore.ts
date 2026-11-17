@@ -274,6 +274,7 @@ interface AppState {
   // WorkLog Actions
   createWorkLog: (log: Omit<WorkLog, 'id' | 'created_at' | 'updated_at' | 'revision_count' | 'trainee'>) => void;
   updateWorkLog: (id: string, updates: Partial<WorkLog>) => void;
+  deleteWorkLog: (id: string) => void;
   submitWorkLog: (id: string) => void;
   mentorApprove: (id: string, note?: string) => void;
   mentorReject: (id: string, note: string) => void;
@@ -628,10 +629,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateWorkLog: (id, updates) => {
+    const assignedMentor = updates.assigned_mentor_id 
+      ? get().mentors.find((m) => m.id === updates.assigned_mentor_id) 
+      : undefined;
+
     set((state) => ({
-      workLogs: state.workLogs.map((log) =>
-        log.id === id ? { ...log, ...updates, updated_at: new Date().toISOString() } : log
-      )
+      workLogs: state.workLogs.map((log) => {
+        if (log.id !== id) return log;
+        const newMentor = assignedMentor !== undefined ? assignedMentor : log.assigned_mentor;
+        return {
+          ...log,
+          ...updates,
+          assigned_mentor: newMentor,
+          updated_at: new Date().toISOString()
+        };
+      })
+    }));
+  },
+
+  deleteWorkLog: (id) => {
+    set((state) => ({
+      workLogs: state.workLogs.filter((log) => log.id !== id)
     }));
   },
 

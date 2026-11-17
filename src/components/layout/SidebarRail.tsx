@@ -28,21 +28,22 @@ interface NavTooltipProps {
 }
 
 const NavTooltip: React.FC<NavTooltipProps> = ({ en, th, badge }) => (
-  <div className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 -translate-x-1.5 group-hover:translate-x-0 transition-all duration-150 ease-out z-50 whitespace-nowrap">
-    {/* Tiny pointer triangle pointing to icon */}
-    <div className="w-1.5 h-1.5 bg-black rotate-45 -mr-1 border-l border-b border-white/10 z-10" />
-
-    {/* Black Pill matching reference image */}
-    <div className="px-2.5 py-1 rounded-lg bg-black/95 text-white shadow-2xl border border-white/15 flex items-center gap-1.5 backdrop-blur-xs">
-      <span className="text-[10px] font-black uppercase tracking-wider text-white">
+  <div className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-150 ease-out z-50 whitespace-nowrap">
+    {/* Clean light pill matching reference image */}
+    <div className="px-2.5 py-1 rounded-md bg-[#EDEBE6] text-[#111111] shadow-md border border-[#D5D2CA] flex items-center gap-1.5">
+      <span className="text-[11px] font-black uppercase tracking-wider text-[#111111]">
         {en}
       </span>
-      <span className="w-1 h-1 rounded-full bg-[#6FD098]" />
-      <span className="text-[10px] text-slate-300 font-semibold tracking-normal normal-case">
-        {th}
-      </span>
+      {th && (
+        <>
+          <span className="w-1 h-1 rounded-full bg-[#99968E]" />
+          <span className="text-[10px] text-[#55524A] font-semibold tracking-normal normal-case">
+            {th}
+          </span>
+        </>
+      )}
       {badge !== undefined && badge > 0 && (
-        <span className="px-1.5 py-0.2 rounded-full bg-[#6FD098] text-[#0E3E35] text-[9px] font-black">
+        <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-[#19705F] text-white text-[9px] font-black">
           {badge}
         </span>
       )}

@@ -187,3 +187,4 @@ CREATE POLICY "Users can mark own notifications as read"
   TO authenticated
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
+

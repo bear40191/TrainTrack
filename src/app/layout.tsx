@@ -1,12 +1,4 @@
-import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
-
-const notoSansThai = Noto_Sans_Thai({
-  subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-noto-sans-thai",
-  display: "swap",
-});
 
 export const metadata = {
   title: "TrainTrack - ระบบบันทึก & อนุมัติงานฝึกงาน",
@@ -28,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${notoSansThai.variable}`}>
-      <body className="font-sans antialiased bg-slate-50 text-slate-800 min-h-screen selection:bg-emerald-100 selection:text-emerald-900">
+    <html lang="th">
+      <body className="font-sans antialiased bg-[#EFEFEF] text-slate-800 min-h-screen selection:bg-[#6FD098]/30 selection:text-[#0E3E35]">
         {children}
       </body>
     </html>

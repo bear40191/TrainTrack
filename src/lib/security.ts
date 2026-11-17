@@ -78,3 +78,4 @@ export type AllowedNotificationType = (typeof ALLOWED_NOTIFICATION_TYPES)[number
 export function isAllowedNotificationType(type: string): type is AllowedNotificationType {
   return ALLOWED_NOTIFICATION_TYPES.includes(type as AllowedNotificationType);
 }
+

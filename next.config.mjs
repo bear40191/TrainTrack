@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // Security: Hide 'X-Powered-By: Next.js' signature to prevent fingerprinting
   async headers() {
+    // Only enforce strict security headers like HSTS in production
+    // In dev mode, HSTS and nosniff can interfere with localhost CSS/chunk loading
+    if (!isProd) {
+      return [];
+    }
     return [
       {
         source: '/:path*',
@@ -41,9 +48,11 @@ const nextConfig = {
   },
   webpack: (config, { dev }) => {
     if (dev) {
+      // Use memory cache in development to avoid Windows PackFileCacheStrategy ENOENT/rename errors
+      config.cache = { type: 'memory' };
       config.watchOptions = {
-        poll: 800, // Poll every 800ms to guarantee hot reload on Windows drives
-        aggregateTimeout: 300,
+        poll: 800, // Poll every 800ms for reliable hot reloading on Windows
+        aggregateTimeout: 200,
       };
     }
     return config;

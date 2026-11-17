@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-noto-sans-thai)", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        sans: ["'Noto Sans Thai'", "'Sarabun'", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "sans-serif"],
       },
       colors: {
         // ชุดสีระบบ 60-30-10 จากภาพ Palette:
