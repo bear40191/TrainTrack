@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import {
@@ -28,13 +28,6 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
 
   const isMentor = currentUser.role === 'mentor';
   const isLead = currentUser.role === 'lead';
-
-  // Animation trigger state
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
 
   // 1. กรองงานที่รอตรวจตามบทบาท
   // พี่เลี้ยง: ตรวจงานที่สถานะเป็น pending_mentor
@@ -399,8 +392,8 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
                       </div>
                       <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden p-0.5">
                         <div
-                          className="h-full rounded-full bg-[#2BA185] transition-all duration-1000 ease-out"
-                          style={{ width: isMounted ? `${Math.max(passRate, 10)}%` : '0%' }}
+                          className="h-full rounded-full bg-[#2BA185] transition-all duration-700 ease-out"
+                          style={{ width: `${Math.max(passRate, 10)}%` }}
                         />
                       </div>
                     </div>

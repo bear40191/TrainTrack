@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import { TabKey } from '@/components/layout/TabBar';
@@ -30,13 +30,6 @@ interface Props {
 
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
   const { currentUser, workLogs, mentors } = useAppStore();
-
-  // Trigger state สำหรับการโหลด Animation ชาร์ตและกราฟิก
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 40);
-    return () => clearTimeout(timer);
-  }, []);
 
   // State สำหรับระบบฟิลเตอร์ของ "รายการงานล่าสุด"
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,8 +155,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
               </div>
 
               {/* Donut Graphic */}
-              <div className="flex items-center justify-center py-1 relative group cursor-default">
-                <svg className="w-18 h-18 sm:w-22 sm:h-22 -rotate-90 group-hover:scale-105 transition-transform duration-300" viewBox="0 0 100 100">
+              <div className="flex items-center justify-center py-2 relative group cursor-default">
+                <svg className="w-24 h-24 sm:w-28 sm:h-28 -rotate-90 group-hover:scale-105 transition-transform duration-300" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -179,9 +172,9 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     fill="transparent"
                     stroke="#2BA185"
                     strokeWidth="11"
-                    strokeDasharray={`${isMounted ? Math.max(approvalRate * 2.38, 20) : 0} 238`}
+                    strokeDasharray={`${Math.max(Math.round((approvalRate / 100) * 238.76), totalLogs > 0 ? 5 : 0)} 238.76`}
                     strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s' }}
+                    className="transition-all duration-700 ease-out"
                   />
                   <circle
                     cx="50"
@@ -190,17 +183,17 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                     fill="transparent"
                     stroke="#6FD098"
                     strokeWidth="11"
-                    strokeDasharray={`${isMounted ? Math.max(pendingRate * 2.38, 15) : 0} 238`}
-                    strokeDashoffset={`-${isMounted ? Math.max(approvalRate * 2.38, 20) : 0}`}
+                    strokeDasharray={`${Math.max(Math.round((pendingRate / 100) * 238.76), totalLogs > 0 ? 5 : 0)} 238.76`}
+                    strokeDashoffset={`-${Math.round((approvalRate / 100) * 238.76)}`}
                     strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s' }}
+                    className="transition-all duration-700 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className={`text-base sm:text-lg font-black text-[#19705F] leading-none transition-all duration-700 ${isMounted ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}>
-                    {approvalRate || 65}%
+                  <span className="text-xl sm:text-2xl font-black text-[#19705F] leading-none">
+                    {approvalRate}%
                   </span>
-                  <span className="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5">อนุมัติ</span>
+                  <span className="text-[10px] sm:text-xs text-slate-400 font-semibold mt-1">อนุมัติ</span>
                 </div>
               </div>
 
@@ -541,16 +534,16 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             <div className="space-y-1.5">
               <div className="w-full h-7 flex rounded-lg overflow-hidden p-0.5 bg-[#145C4E] border border-[#125447]">
                 <div
-                  className="h-full rounded-md bg-[#6FD098] flex items-center justify-center text-xs font-black text-[#0E3E35] px-1.5 shadow-xs transition-all duration-1000 ease-out"
-                  style={{ width: isMounted ? `${Math.max(approvalRate, 40)}%` : '0%' }}
+                  className="h-full rounded-md bg-[#6FD098] flex items-center justify-center text-xs font-black text-[#0E3E35] px-1.5 shadow-xs transition-all duration-700 ease-out"
+                  style={{ width: `${Math.max(approvalRate, 20)}%` }}
                 >
-                  {approvalRate || 45}%
+                  {approvalRate}%
                 </div>
                 <div
-                  className="h-full rounded-md bg-white flex items-center justify-center text-xs font-black text-[#19705F] px-1.5 ml-1 transition-all duration-1000 ease-out"
-                  style={{ width: isMounted ? `${100 - Math.max(approvalRate, 40)}%` : '0%' }}
+                  className="h-full rounded-md bg-white flex items-center justify-center text-xs font-black text-[#19705F] px-1.5 ml-1 transition-all duration-700 ease-out"
+                  style={{ width: `${100 - Math.max(approvalRate, 20)}%` }}
                 >
-                  {100 - (approvalRate || 45)}%
+                  {100 - approvalRate}%
                 </div>
               </div>
 
@@ -604,8 +597,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                       i === 5 ? 'bg-[#19705F] group-hover:bg-[#145C4E]' : 'bg-white/90 group-hover:bg-white'
                     }`}
                     style={{
-                      height: isMounted ? `${h}%` : '8%',
-                      transition: `height 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 35 + 250}ms`
+                      height: `${h}%`,
+                      transition: `height 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 35 + 100}ms`
                     }}
                   />
                 </div>
@@ -643,8 +636,8 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeDasharray="250"
-                  strokeDashoffset={isMounted ? 0 : 250}
-                  style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s' }}
+                  strokeDashoffset={0}
+                  className="transition-all duration-1000 ease-out"
                 />
                 {/* Glowing pulse ring behind the end point */}
                 <circle cx="200" cy="9" r="6" fill="#6FD098" className="animate-ping-slow origin-center opacity-60" />

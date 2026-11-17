@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import { TabKey } from '@/components/layout/TabBar';
@@ -28,13 +28,6 @@ interface Props {
 
 export const AdminDashboardView: React.FC<Props> = ({ onSelectLog, onNavigateTab }) => {
   const { currentUser, workLogs, trainees, mentors } = useAppStore();
-
-  // Animation trigger state
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 40);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Filter state for System Work Logs Table
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'revision_required'>('all');
@@ -428,8 +421,8 @@ export const AdminDashboardView: React.FC<Props> = ({ onSelectLog, onNavigateTab
                     {/* Mini Progress Bar */}
                     <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#2BA185] transition-all duration-1000 ease-out"
-                        style={{ width: isMounted ? `${Math.max(passRate, 8)}%` : '0%' }}
+                        className="h-full rounded-full bg-[#2BA185] transition-all duration-700 ease-out"
+                        style={{ width: `${Math.max(passRate, 8)}%` }}
                       />
                     </div>
                   </div>
@@ -469,9 +462,9 @@ export const AdminDashboardView: React.FC<Props> = ({ onSelectLog, onNavigateTab
                     fill="transparent"
                     stroke="#19705F"
                     strokeWidth="11"
-                    strokeDasharray={`${isMounted ? Math.max(approvalRate * 2.38, 15) : 0} 238`}
+                    strokeDasharray={`${Math.max(Math.round((approvalRate / 100) * 238.76), 15)} 238.76`}
                     strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s' }}
+                    className="transition-all duration-700 ease-out"
                   />
                   <circle
                     cx="50"
@@ -480,10 +473,10 @@ export const AdminDashboardView: React.FC<Props> = ({ onSelectLog, onNavigateTab
                     fill="transparent"
                     stroke="#6FD098"
                     strokeWidth="11"
-                    strokeDasharray={`${isMounted ? Math.max(pendingRate * 2.38, 10) : 0} 238`}
-                    strokeDashoffset={`-${isMounted ? Math.max(approvalRate * 2.38, 15) : 0}`}
+                    strokeDasharray={`${Math.max(Math.round((pendingRate / 100) * 238.76), 10)} 238.76`}
+                    strokeDashoffset={`-${Math.round((approvalRate / 100) * 238.76)}`}
                     strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s' }}
+                    className="transition-all duration-700 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
