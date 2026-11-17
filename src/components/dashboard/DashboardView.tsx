@@ -30,7 +30,6 @@ interface Props {
 
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
   const { currentUser, workLogs, mentors } = useAppStore();
-  const [selectedPeriod, setSelectedPeriod] = useState<'This year' | 'This month' | 'This week'>('This year');
 
   // Trigger state สำหรับการโหลด Animation ชาร์ตและกราฟิก
   const [isMounted, setIsMounted] = useState(false);
@@ -102,22 +101,6 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
     });
   }, [workLogs, searchQuery, statusFilter, categoryFilter]);
 
-  // 12 เดือนสำหรับ Bar Chart
-  const monthsData = [
-    { name: 'Jan', approved: 40, pending: 20 },
-    { name: 'Feb', approved: 65, pending: 35 },
-    { name: 'Mar', approved: 45, pending: 25 },
-    { name: 'Apr', approved: 75, pending: 30 },
-    { name: 'May', approved: 55, pending: 20 },
-    { name: 'Jun', approved: 85, pending: 40 },
-    { name: 'Jul', approved: 95, pending: 15, isHighlighted: true },
-    { name: 'Aug', approved: 60, pending: 30 },
-    { name: 'Sep', approved: 70, pending: 25 },
-    { name: 'Oct', approved: 50, pending: 20 },
-    { name: 'Nov', approved: 80, pending: 35 },
-    { name: 'Dec', approved: 65, pending: 25 },
-  ];
-
   // ถ้าเป็นพี่เลี้ยง (mentor) หรือหัวหน้า (lead) ให้แสดงแดชบอร์ดแบบง่ายๆ มีไม่กี่หัวข้อ พร้อมอนิเมชั่น
   if (currentUser.role === 'mentor' || currentUser.role === 'lead') {
     return (
@@ -144,100 +127,14 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch h-full">
         
         {/* ======================= LEFT / CENTER MAJOR COLUMN (8 COLS) ======================= */}
-        {/* ใช้ flex-col และดันส่วนบนให้ชิดกัน (gap-2.5) แล้วขยาย Card 4 ด้วย flex-1 */}
-        <div className="lg:col-span-8 flex flex-col gap-2.5 h-full min-h-0">
+        {/* ดันส่วนบน (Donut + Last Activity) ขึ้นมาด้านบน และขยายตารางรายงานล่าสุด (Card 4) ให้เต็มพื้นที่ */}
+        <div className="lg:col-span-8 flex flex-col gap-3 h-full min-h-0">
           
-          {/* Card 1: Work Analytics Bar Chart with Staggered Grow Animation */}
-          <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs relative shrink-0 animate-fade-in-up [animation-delay:50ms]">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>สถิติการส่งงาน (Work Analytics)</span>
-                </h3>
-                <div className="flex items-center gap-3.5 mt-1 text-xs text-slate-500 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#2BA185]" />
-                    อนุมัติแล้ว
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#6FD098]" />
-                    รอตรวจ
-                  </span>
-                </div>
-              </div>
-
-              {/* Timeframe Dropdown */}
-              <div className="relative inline-flex items-center">
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as 'This year' | 'This month' | 'This week')}
-                  className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-3 py-1.5 pr-7 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"
-                >
-                  <option value="This year">This year</option>
-                  <option value="This month">This month</option>
-                  <option value="This week">This week</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Bar Chart Visualization with animated bars & hover lift */}
-            <div className="h-28 sm:h-32 w-full flex items-end justify-between gap-1 sm:gap-2 pt-3 pb-1 px-1 relative">
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-30">
-                <div className="border-b border-dashed border-slate-200 w-full" />
-                <div className="border-b border-dashed border-slate-200 w-full" />
-                <div className="border-b border-dashed border-slate-200 w-full" />
-              </div>
-
-              {monthsData.map((m, idx) => {
-                const totalHeight = m.approved + m.pending;
-                return (
-                  <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end relative group">
-                    {m.isHighlighted && (
-                      <div className="absolute -top-9 z-10 bg-[#19705F] text-white px-2.5 py-0.5 rounded-lg shadow-lg text-[11px] font-bold whitespace-nowrap border border-[#145C4E] pointer-events-none animate-float-slow">
-                        <span className="text-[#6FD098]">● 10 ผ่าน</span> • <span className="text-[#C2EAD6]">○ 2 รอ</span>
-                      </div>
-                    )}
-
-                    <div
-                      className={`w-full max-w-[22px] rounded-t-lg transition-all duration-500 ease-out flex flex-col justify-end overflow-hidden cursor-pointer ${
-                        m.isHighlighted
-                          ? 'ring-2 ring-[#6FD098] shadow-xs group-hover:scale-110 group-hover:-translate-y-1'
-                          : 'opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:-translate-y-0.5'
-                      }`}
-                      style={{
-                        height: isMounted ? `${totalHeight * 0.78}%` : '6%',
-                        transition: `height 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 30}ms, transform 0.2s ease`
-                      }}
-                    >
-                      <div
-                        className={`w-full ${m.isHighlighted ? 'bg-[#6FD098]' : 'bg-[#E2F4EB]'}`}
-                        style={{ height: `${(m.pending / totalHeight) * 100}%` }}
-                      />
-                      <div
-                        className={`w-full ${m.isHighlighted ? 'bg-[#2BA185]' : 'bg-[#C2EAD6]'}`}
-                        style={{ height: `${(m.approved / totalHeight) * 100}%` }}
-                      />
-                    </div>
-
-                    <span
-                      className={`text-[11px] mt-1 font-medium transition-colors duration-150 ${
-                        m.isHighlighted ? 'text-[#19705F] font-black' : 'text-slate-400 group-hover:text-slate-700'
-                      }`}
-                    >
-                      {m.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Middle Row: ดันขึ้นมาชิดด้านบน (gap-2.5) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
+          {/* Top Row: สัดส่วนสถานะงาน (Donut Chart) & กิจกรรมล่าสุด (Last Activity) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
             
             {/* Card 2: Donut Chart (Status) with SVG Stroke Drawing Animation */}
-            <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:130ms] hover:shadow-md transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:60ms] hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between mb-1">
                 <h4 className="text-sm font-extrabold text-slate-900">
                   สัดส่วนสถานะงาน (Status)
