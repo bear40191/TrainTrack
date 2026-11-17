@@ -19,7 +19,10 @@ import {
   X,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  User,
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 
 interface Props {
@@ -29,12 +32,14 @@ interface Props {
 }
 
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
-  const { currentUser, workLogs, mentors } = useAppStore();
+  const { currentUser, workLogs, mentors, trainees } = useAppStore();
 
   // State สำหรับระบบฟิลเตอร์ของ "รายการงานล่าสุด"
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'revision_required'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [personFilter, setPersonFilter] = useState<string>('all'); // 'all' | 'trainee:ID' | 'mentor:ID'
+  const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD
 
   const isTrainee = currentUser.role === 'trainee';
   const isMentor = currentUser.role === 'mentor';
@@ -64,16 +69,37 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
     return Array.from(set);
   }, [workLogs]);
 
+  // รวมรายชื่อบุคคล (นักศึกษาและพี่เลี้ยง) เพื่อใช้ใน Dropdown Filter
+  const personOptions = useMemo(() => {
+    const traineeMap = new Map<string, string>();
+    trainees.forEach((t) => traineeMap.set(t.id, t.full_name));
+    workLogs.forEach((l) => {
+      if (l.trainee) traineeMap.set(l.trainee.id, l.trainee.full_name);
+    });
+
+    const mentorMap = new Map<string, string>();
+    mentors.forEach((m) => mentorMap.set(m.id, m.full_name));
+    workLogs.forEach((l) => {
+      if (l.assigned_mentor) mentorMap.set(l.assigned_mentor.id, l.assigned_mentor.full_name);
+    });
+
+    return {
+      trainees: Array.from(traineeMap.entries()).map(([id, name]) => ({ id, name })),
+      mentors: Array.from(mentorMap.entries()).map(([id, name]) => ({ id, name })),
+    };
+  }, [trainees, mentors, workLogs]);
+
   // ประมวลผล Filter ของตารางรายการงานล่าสุด (เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุด)
   const filteredLogs = useMemo(() => {
     const list = workLogs.filter((log) => {
-      // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อผู้บันทึก
+      // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อผู้บันทึก หรือชื่อพี่เลี้ยง
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchTitle = log.title.toLowerCase().includes(q);
         const matchTrainee = log.trainee?.full_name?.toLowerCase().includes(q);
+        const matchMentor = log.assigned_mentor?.full_name?.toLowerCase().includes(q);
         const matchDesc = log.description?.toLowerCase().includes(q);
-        if (!matchTitle && !matchTrainee && !matchDesc) return false;
+        if (!matchTitle && !matchTrainee && !matchMentor && !matchDesc) return false;
       }
 
       // 2. กรองตามสถานะ
@@ -90,6 +116,22 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
         if (log.category !== categoryFilter) return false;
       }
 
+      // 4. กรองตามคน (นักศึกษา หรือ พี่เลี้ยง)
+      if (personFilter !== 'all') {
+        if (personFilter.startsWith('trainee:')) {
+          const tId = personFilter.replace('trainee:', '');
+          if (log.trainee_id !== tId && log.trainee?.id !== tId) return false;
+        } else if (personFilter.startsWith('mentor:')) {
+          const mId = personFilter.replace('mentor:', '');
+          if (log.assigned_mentor_id !== mId && log.assigned_mentor?.id !== mId) return false;
+        }
+      }
+
+      // 5. กรองตามวันที่ (YYYY-MM-DD)
+      if (dateFilter) {
+        if (!log.work_date.startsWith(dateFilter)) return false;
+      }
+
       return true;
     });
 
@@ -100,7 +142,23 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
       if (dateB !== dateA) return dateB - dateA;
       return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
     });
-  }, [workLogs, searchQuery, statusFilter, categoryFilter]);
+  }, [workLogs, searchQuery, statusFilter, categoryFilter, personFilter, dateFilter]);
+
+  // ตรวจสอบว่ามีการเปิดใช้ตัวกรองอยู่หรือไม่
+  const isAnyFilterActive =
+    searchQuery.trim() !== '' ||
+    statusFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    personFilter !== 'all' ||
+    dateFilter !== '';
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setPersonFilter('all');
+    setDateFilter('');
+  };
 
   // กิจกรรมล่าสุดของนักศึกษา เรียงจากบนลงล่าง (ล่าสุดอยู่บนสุดเสมอ)
   const recentTraineeActivities = useMemo(() => {
@@ -299,24 +357,31 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
           {/* Card 4: ขยายรายงานล่าสุด (Work Logs Table) ขึ้น พร้อมระบบฟิลเตอร์ครบวงจร! */}
           <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex-1 flex flex-col min-h-0 overflow-hidden animate-fade-in-up [animation-delay:250ms]">
             {/* Header + Filter Bar */}
+            {/* Header with Search and Match Count */}
             <div className="space-y-2.5 mb-2 pb-2.5 border-b border-slate-100 shrink-0">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h4 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                  <h4 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2 flex-wrap">
                     <span>รายการงานล่าสุด (Work Logs Table)</span>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      แสดง {filteredLogs.length} จาก {workLogs.length}
+                    <span
+                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border transition-colors ${
+                        isAnyFilterActive
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold shadow-2xs'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      ตรงกับตัวกรอง {filteredLogs.length} จาก {workLogs.length} รายการ
                     </span>
                   </h4>
                 </div>
 
                 {/* Search Bar Input */}
-                <div className="relative w-48 sm:w-60">
+                <div className="relative w-full sm:w-60">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ค้นหาชื่องาน..."
+                    placeholder="ค้นหาชื่องาน, รายละเอียด..."
                     className="w-full pl-8 pr-6 py-1.5 bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 focus:border-[#2BA185] rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#6FD098] transition"
                   />
                   <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2 pointer-events-none" />
@@ -331,10 +396,10 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 </div>
               </div>
 
-              {/* Filter Pills & Category Dropdown */}
-              <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5">
+              {/* Filter Pills & Secondary Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 {/* Status Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold">
+                <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold scrollbar-none">
                   <button
                     onClick={() => setStatusFilter('all')}
                     className={`px-3 py-1.5 rounded-lg transition ${
@@ -383,22 +448,90 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   </button>
                 </div>
 
-                {/* Category Dropdown Filter */}
-                <div className="relative inline-flex items-center text-xs">
-                  <Filter className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 pr-6 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
-                  >
-                    <option value="all">ทุกหมวดหมู่</option>
-                    {allCategories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+                {/* Filter Controls: Person, Date, Category, Reset */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {/* Person Filter Dropdown */}
+                  <div className="relative inline-flex items-center">
+                    <User className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" />
+                    <select
+                      value={personFilter}
+                      onChange={(e) => setPersonFilter(e.target.value)}
+                      className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 pr-6 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
+                      title="กรองตามบุคคล (นักศึกษา หรือ พี่เลี้ยง)"
+                    >
+                      <option value="all">ทุกคน (All)</option>
+                      {personOptions.trainees.length > 0 && (
+                        <optgroup label="── นักศึกษา (Trainees) ──">
+                          {personOptions.trainees.map((t) => (
+                            <option key={`trainee:${t.id}`} value={`trainee:${t.id}`}>
+                              นักศึกษา: {t.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {personOptions.mentors.length > 0 && (
+                        <optgroup label="── พี่เลี้ยง (Mentors) ──">
+                          {personOptions.mentors.map((m) => (
+                            <option key={`mentor:${m.id}`} value={`mentor:${m.id}`}>
+                              พี่เลี้ยง: {m.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
+                  </div>
+
+                  {/* Date Filter Input */}
+                  <div className="relative inline-flex items-center">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" />
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      title="กรองตามวันที่ทำงาน"
+                      className="bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
+                    />
+                    {dateFilter && (
+                      <button
+                        onClick={() => setDateFilter('')}
+                        title="ล้างวันที่"
+                        className="ml-1 text-slate-400 hover:text-slate-600 p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Dropdown Filter */}
+                  <div className="relative inline-flex items-center">
+                    <Filter className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" />
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 pr-6 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
+                    >
+                      <option value="all">ทุกหมวดหมู่</option>
+                      {allCategories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
+                  </div>
+
+                  {/* Reset All Filters Button */}
+                  {isAnyFilterActive && (
+                    <button
+                      onClick={handleResetFilters}
+                      className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center gap-1 shadow-2xs"
+                      title="ล้างตัวกรองทั้งหมด"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      ล้างตัวกรอง
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -432,8 +565,11 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                               <p className="font-bold text-slate-900 group-hover:text-[#19705F] line-clamp-1 text-xs sm:text-sm transition-colors duration-150">
                                 {log.title}
                               </p>
-                              <p className="text-xs text-slate-400">
-                                โดย: {log.trainee?.full_name?.split(' ')[0] || 'นักศึกษา'}
+                              <p className="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
+                                <span>โดย: <strong className="text-slate-600">{log.trainee?.full_name?.split(' ')[0] || 'นักศึกษา'}</strong></span>
+                                {log.assigned_mentor && (
+                                  <span>• พี่เลี้ยง: <strong className="text-slate-600">{log.assigned_mentor.full_name?.split(' ')[0]}</strong></span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -485,15 +621,12 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 </table>
               ) : (
                 <div className="py-8 text-center text-slate-400">
-                  <p className="text-sm font-semibold">ไม่พบรายการงานที่ตรงกับเงื่อนไขการค้นหา</p>
+                  <p className="text-sm font-semibold">ไม่พบรายการงานที่ตรงกับตัวกรอง (0 จาก {workLogs.length} รายการ)</p>
                   <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setStatusFilter('all');
-                      setCategoryFilter('all');
-                    }}
-                    className="mt-2 text-xs text-emerald-600 font-bold hover:underline"
+                    onClick={handleResetFilters}
+                    className="mt-2 text-xs text-emerald-600 font-bold hover:underline inline-flex items-center gap-1"
                   >
+                    <RotateCcw className="w-3.5 h-3.5" />
                     ล้างตัวกรองทั้งหมด
                   </button>
                 </div>
