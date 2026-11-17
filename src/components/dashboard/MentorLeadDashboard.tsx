@@ -83,9 +83,16 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
     });
   }, [trainees, workLogs, mentors, isMentor, currentUser.id]);
 
-  // 3. กิจกรรมล่าสุด
+  // 3. กิจกรรมล่าสุด (เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุดเสมอ)
   const recentActivities = useMemo(() => {
-    return workLogs.slice(0, 3);
+    return [...workLogs]
+      .sort((a, b) => {
+        const dateA = new Date(a.work_date || a.created_at).getTime();
+        const dateB = new Date(b.work_date || b.created_at).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+        return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+      })
+      .slice(0, 3);
   }, [workLogs]);
 
   return (

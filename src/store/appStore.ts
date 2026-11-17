@@ -122,6 +122,39 @@ export const ALL_DEMO_USERS: Profile[] = [
 
 const INITIAL_LOGS: WorkLog[] = [
   {
+    id: 'log-2',
+    trainee_id: 'user-trainee-1',
+    assigned_mentor_id: 'user-mentor-1',
+    work_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+    title: 'เชื่อมต่อหน้าเข้าสู่ระบบและสร้างหน้าบันทึกประจำวัน',
+    description: 'เขียนฟอร์มบันทึกการทำงาน เพิ่มระบบอัปโหลดรูปภาพตัวอย่าง และจัดการสถานะฟอร์มตามที่กำหนด',
+    hours_spent: 8,
+    status: 'pending_mentor',
+    category: 'พัฒนาระบบ (Development)',
+    revision_count: 0,
+    submitted_at: new Date(Date.now() - 86400000).toISOString(),
+    approved_at: null,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+    trainee: MOCK_USERS.trainee,
+    assigned_mentor: MOCK_MENTORS[0],
+    attachments: [],
+    comments: [],
+    approval_actions: [
+      {
+        id: 'act-2-1',
+        work_log_id: 'log-2',
+        actor_id: 'user-trainee-1',
+        action: 'submit',
+        from_status: 'draft',
+        to_status: 'pending_mentor',
+        note: null,
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        actor: MOCK_USERS.trainee
+      }
+    ]
+  },
+  {
     id: 'log-1',
     trainee_id: 'user-trainee-1',
     assigned_mentor_id: 'user-mentor-3',
@@ -202,39 +235,6 @@ const INITIAL_LOGS: WorkLog[] = [
         note: 'อนุมัติขั้นสุดท้าย',
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         actor: MOCK_USERS.lead
-      }
-    ]
-  },
-  {
-    id: 'log-2',
-    trainee_id: 'user-trainee-1',
-    assigned_mentor_id: 'user-mentor-1',
-    work_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    title: 'เชื่อมต่อหน้าเข้าสู่ระบบและสร้างหน้าบันทึกประจำวัน',
-    description: 'เขียนฟอร์มบันทึกการทำงาน เพิ่มระบบอัปโหลดรูปภาพตัวอย่าง และจัดการสถานะฟอร์มตามที่กำหนด',
-    hours_spent: 8,
-    status: 'pending_mentor',
-    category: 'พัฒนาระบบ (Development)',
-    revision_count: 0,
-    submitted_at: new Date(Date.now() - 86400000).toISOString(),
-    approved_at: null,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
-    trainee: MOCK_USERS.trainee,
-    assigned_mentor: MOCK_MENTORS[0],
-    attachments: [],
-    comments: [],
-    approval_actions: [
-      {
-        id: 'act-2-1',
-        work_log_id: 'log-2',
-        actor_id: 'user-trainee-1',
-        action: 'submit',
-        from_status: 'draft',
-        to_status: 'pending_mentor',
-        note: null,
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        actor: MOCK_USERS.trainee
       }
     ]
   }

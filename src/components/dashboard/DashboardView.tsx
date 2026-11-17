@@ -71,9 +71,9 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
     return Array.from(set);
   }, [workLogs]);
 
-  // ประมวลผล Filter ของตารางรายการงานล่าสุด
+  // ประมวลผล Filter ของตารางรายการงานล่าสุด (เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุด)
   const filteredLogs = useMemo(() => {
-    return workLogs.filter((log) => {
+    const list = workLogs.filter((log) => {
       // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อผู้บันทึก
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -99,7 +99,26 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
 
       return true;
     });
+
+    // เรียงจากบนลงล่าง: ล่าสุดอยู่บนสุดเสมอ
+    return list.sort((a, b) => {
+      const dateA = new Date(a.work_date || a.created_at).getTime();
+      const dateB = new Date(b.work_date || b.created_at).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+    });
   }, [workLogs, searchQuery, statusFilter, categoryFilter]);
+
+  // กิจกรรมล่าสุดของนักศึกษา เรียงจากบนลงล่าง (ล่าสุดอยู่บนสุดเสมอ)
+  const recentTraineeActivities = useMemo(() => {
+    const list = isTrainee ? myTraineeLogs : workLogs;
+    return [...list].sort((a, b) => {
+      const dateA = new Date(a.work_date || a.created_at).getTime();
+      const dateB = new Date(b.work_date || b.created_at).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+    });
+  }, [isTrainee, myTraineeLogs, workLogs]);
 
   // ถ้าเป็นพี่เลี้ยง (mentor) หรือหัวหน้า (lead) ให้แสดงแดชบอร์ดแบบง่ายๆ มีไม่กี่หัวข้อ พร้อมอนิเมชั่น
   if (currentUser.role === 'mentor' || currentUser.role === 'lead') {
@@ -205,8 +224,9 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
             {/* Card 3: Last Activity with Interactive Avatars & List Hover */}
             <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between animate-fade-in-up [animation-delay:190ms] hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between mb-1.5">
-                <h4 className="text-sm font-extrabold text-slate-900">
-                  กิจกรรมล่าสุด (Last Activity)
+                <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#2BA185]" />
+                  <span>กิจกรรมล่าสุด (Last Activity)</span>
                 </h4>
                 <div className="flex -space-x-1 overflow-hidden p-0.5">
                   {mentors.slice(0, 3).map((m, i) => (
@@ -221,22 +241,32 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                 </div>
               </div>
 
-              {/* Activity rows */}
+              {/* Activity rows - เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุดเสมอ */}
               <div className="space-y-1.5">
-                {workLogs.slice(0, 2).map((log, i) => (
+                {recentTraineeActivities.slice(0, 2).map((log, i) => (
                   <div
                     key={log.id || i}
                     onClick={() => onSelectLog(log)}
                     className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#EFEFEF]/70 hover:translate-x-1 transition-all duration-150 cursor-pointer group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-xs group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150">
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 font-bold text-xs group-hover:bg-[#19705F] group-hover:text-white transition-colors duration-150 relative">
                         {log.trainee?.full_name?.charAt(0) || 'U'}
+                        {i === 0 && (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#6FD098] border border-white" title="กิจกรรมล่าสุด" />
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-[#19705F] transition-colors duration-150">
-                          {log.title}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-[#19705F] transition-colors duration-150">
+                            {log.title}
+                          </p>
+                          {i === 0 && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 shrink-0">
+                              ล่าสุด
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-slate-400 truncate">
                           {log.work_date} • {log.assigned_mentor?.full_name?.split(' ')[0] || 'พี่เลี้ยง'}
                         </p>

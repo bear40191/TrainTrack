@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog, WorkLogStatus } from '@/lib/types';
 import { WorkLogCard } from '@/components/work-log/WorkLogCard';
@@ -14,11 +14,22 @@ export const MyLogsView: React.FC<Props> = ({ onSelectLog }) => {
   const { currentUser, workLogs } = useAppStore();
   const [filter, setFilter] = useState<'all' | WorkLogStatus>('all');
 
-  const myLogs = workLogs.filter((l) => l.trainee_id === currentUser.id);
+  // เรียงลำดับงานของฉันจากบนลงล่าง (รายการล่าสุดอยู่บนสุดเสมอ)
+  const myLogs = useMemo(() => {
+    return workLogs
+      .filter((l) => l.trainee_id === currentUser.id)
+      .sort((a, b) => {
+        const dateA = new Date(a.work_date || a.created_at).getTime();
+        const dateB = new Date(b.work_date || b.created_at).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+        return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+      });
+  }, [workLogs, currentUser.id]);
 
-  const filteredLogs = filter === 'all' 
-    ? myLogs 
-    : myLogs.filter((l) => l.status === filter);
+  const filteredLogs = useMemo(() => {
+    if (filter === 'all') return myLogs;
+    return myLogs.filter((l) => l.status === filter);
+  }, [myLogs, filter]);
 
   const filterTabs: { key: 'all' | WorkLogStatus; label: string }[] = [
     { key: 'all', label: 'ทั้งหมด' },
