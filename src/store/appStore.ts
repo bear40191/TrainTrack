@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Profile, Role, WorkLog, AppNotification, ApprovalAction, Comment as AppComment } from '@/lib/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
+import { verifyPassword } from '@/lib/password';
 import {
   notifyMentorPendingReview,
   notifyLeadPendingApproval,
@@ -253,6 +254,7 @@ interface AppState {
   login: (email: string, password?: string) => boolean;
   logout: () => void;
   changePassword: (email: string, newPassword: string) => { success: boolean; message: string };
+  updateUserPassword: (email: string, hashedOrPlain: string) => void;
   // Actions
   switchRole: (role: Role, mentorId?: string) => void;
   selectSpecificMentor: (mentorId: string) => void;
@@ -295,6 +297,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     'admin@traintrack.app': '123456',
   },
 
+  updateUserPassword: (email: string, hashedOrPlain: string) => {
+    const trimmed = email.trim().toLowerCase();
+    set((state) => ({
+      userPasswords: {
+        ...state.userPasswords,
+        [trimmed]: hashedOrPlain,
+      },
+    }));
+  },
+
   changePassword: (email: string, newPassword: string) => {
     const trimmed = email.trim().toLowerCase();
     const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
@@ -327,7 +339,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
     if (found) {
       const expectedPassword = get().userPasswords[trimmed] || '123456';
-      if (password && password !== expectedPassword) {
+      if (password && !verifyPassword(password, expectedPassword)) {
         return false;
       }
       set({ currentUser: found, isAuthenticated: true });

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
-  const { login, changePassword } = useAppStore();
+  const { login } = useAppStore();
   const [email, setEmail] = useState('kittisak.trainee@traintrack.app');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,12 +31,10 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDemoUser, setSelectedDemoUser] = useState<Profile | null>(ALL_DEMO_USERS[0]);
 
-  // State สำหรับ Modal ลืมรหัสผ่าน
+  // State สำหรับ Modal ลืมรหัสผ่าน (ขอรับลิงก์รีเซ็ตทางอีเมลตาม Spec 2026-11-20)
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotNewPassword, setForgotNewPassword] = useState('');
-  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
-  const [showForgotPwd, setShowForgotPwd] = useState(false);
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
@@ -72,14 +70,12 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
 
   const handleOpenForgotPassword = () => {
     setForgotEmail(email || 'kittisak.trainee@traintrack.app');
-    setForgotNewPassword('');
-    setForgotConfirmPassword('');
     setForgotError(null);
     setForgotSuccess(null);
     setIsForgotModalOpen(true);
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError(null);
     setForgotSuccess(null);
@@ -89,29 +85,20 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
       return;
     }
 
-    if (forgotNewPassword.length < 4) {
-      setForgotError('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
-      return;
-    }
-
-    if (forgotNewPassword !== forgotConfirmPassword) {
-      setForgotError('รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน');
-      return;
-    }
-
-    const res = changePassword(forgotEmail, forgotNewPassword);
-    if (res.success) {
-      setForgotSuccess(res.message);
-      // กรอกรหัสใหม่ลงในฟอร์มหน้า Login ให้อัตโนมัติ
-      setEmail(forgotEmail);
-      setPassword(forgotNewPassword);
-      setSuccessMsg('เปลี่ยนรหัสผ่านสำเร็จแล้ว! ระบบได้กรอกรหัสผ่านใหม่ให้คุณเรียบร้อยแล้ว สามารถกด Login ได้ทันที');
-
-      setTimeout(() => {
-        setIsForgotModalOpen(false);
-      }, 1800);
-    } else {
-      setForgotError(res.message);
+    setIsForgotLoading(true);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      const data = await response.json();
+      // ตอบกลับข้อความเดิมเสมอ ไม่ว่าอีเมลจะมีอยู่ในระบบหรือไม่
+      setForgotSuccess(data.message || 'ถ้าอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์ให้แล้ว');
+    } catch {
+      setForgotSuccess('ถ้าอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์ให้แล้ว');
+    } finally {
+      setIsForgotLoading(false);
     }
   };
 
@@ -379,7 +366,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                 <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                   <KeyRound className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-black text-slate-900">ตั้งรหัสผ่านใหม่</h3>
+                <h3 className="text-base font-black text-slate-900">ลืมรหัสผ่าน?</h3>
               </div>
               <button
                 type="button"
@@ -391,91 +378,69 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
             </div>
 
             <p className="text-xs text-slate-500 mb-4">
-              ระบุอีเมลบัญชีของคุณ และกำหนดรหัสผ่านใหม่เพื่อเข้าสู่ระบบ
+              กรอกอีเมลบัญชีของคุณเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่ทางอีเมล
             </p>
 
-            {forgotSuccess && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{forgotSuccess}</span>
-              </div>
-            )}
-
-            {forgotError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{forgotError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  อีเมลบัญชีของคุณ
-                </label>
-                <input
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="เช่น kittisak.trainee@traintrack.app"
-                  required
-                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  รหัสผ่านใหม่
-                </label>
-                <div className="relative">
-                  <input
-                    type={showForgotPwd ? 'text' : 'password'}
-                    value={forgotNewPassword}
-                    onChange={(e) => setForgotNewPassword(e.target.value)}
-                    placeholder="อย่างน้อย 4 ตัวอักษร"
-                    required
-                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 pr-9"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPwd(!showForgotPwd)}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showForgotPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {forgotSuccess ? (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-900">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{forgotSuccess}</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-relaxed">
+                    กรุณาเปิดอีเมลของคุณและคลิกลิงก์เพื่อตั้งรหัสผ่านใหม่บนเบราว์เซอร์ (ลิงก์มีอายุ 30 นาที และใช้ได้เพียงครั้งเดียว)
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ยืนยันรหัสผ่านใหม่
-                </label>
-                <input
-                  type={showForgotPwd ? 'text' : 'password'}
-                  value={forgotConfirmPassword}
-                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                  placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง"
-                  required
-                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsForgotModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
                 >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                >
-                  บันทึกรหัสผ่านใหม่
+                  ปิดหน้าต่าง
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-3.5">
+                {forgotError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    อีเมลบัญชีของคุณ
+                  </label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="เช่น kittisak.trainee@traintrack.app"
+                    required
+                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isForgotLoading}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    {isForgotLoading ? 'กำลังส่งข้อมูล...' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
