@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import {
@@ -15,7 +15,9 @@ import {
   Award,
   ShieldCheck,
   ChevronRight,
-  Inbox
+  Inbox,
+  CheckCheck,
+  Check
 } from 'lucide-react';
 
 interface Props {
@@ -24,7 +26,9 @@ interface Props {
 }
 
 export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTab }) => {
-  const { currentUser, workLogs, trainees, mentors } = useAppStore();
+  const { currentUser, workLogs, trainees, mentors, mentorApproveAll, leadApproveAll } = useAppStore();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const isMentor = currentUser.role === 'mentor';
   const isLead = currentUser.role === 'lead';
@@ -41,6 +45,21 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
     }
     return [];
   }, [workLogs, isMentor, isLead]);
+
+  const handleApproveAllConfirm = () => {
+    const count = pendingQueue.length;
+    const ids = pendingQueue.map((l) => l.id);
+    if (isMentor) {
+      mentorApproveAll(ids);
+    } else {
+      leadApproveAll(ids);
+    }
+    setShowConfirmModal(false);
+    setSuccessToast(`อนุมัติงานทั้งหมด ${count} รายการเรียบร้อยแล้ว`);
+    setTimeout(() => {
+      setSuccessToast(null);
+    }, 3500);
+  };
 
   // สถิติรวม
   const approvedCount = useMemo(() => {
@@ -237,9 +256,22 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
               </div>
             </div>
 
-            <span className="text-sm font-black px-3 py-1 rounded-xl bg-[#EFEFEF] text-slate-700 border border-slate-200">
-              {pendingQueue.length} งาน
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-xl bg-[#EFEFEF] text-slate-700 border border-slate-200">
+                {pendingQueue.length} งาน
+              </span>
+              {pendingQueue.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-[#19705F] hover:bg-[#145C4E] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
+                  title={isMentor ? 'อนุมัติงานทั้งหมดในคิว' : 'อนุมัติขั้นสุดท้ายงานทั้งหมดในคิว'}
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span>อนุมัติทั้งหมด</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List of Pending Items */}
@@ -459,6 +491,60 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
         </div>
 
       </div>
+
+      {/* Modal ยืนยันอนุมัติทั้งหมด */}
+      {showConfirmModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-[#19705F] flex items-center justify-center mb-4 mx-auto shadow-xs">
+              <CheckCheck className="w-6 h-6" />
+            </div>
+
+            <div className="text-center mb-5">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                ยืนยันการอนุมัติทั้งหมด?
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                {isMentor
+                  ? `คุณต้องการอนุมัติและส่งต่องานในคิวทั้งหมด ${pendingQueue.length} รายการไปยังหัวหน้าพี่เลี้ยงใช่หรือไม่?`
+                  : `คุณต้องการยืนยันอนุมัติขั้นสุดท้ายสำหรับงานทั้งหมด ${pendingQueue.length} รายการใช่หรือไม่?`}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveAllConfirm}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#19705F] hover:bg-[#145C4E] text-white font-bold text-xs shadow-sm hover:shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>ยืนยันอนุมัติ ({pendingQueue.length})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#19705F] text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-bold animate-slideUp">
+          <CheckCircle2 className="w-5 h-5 text-[#6FD098]" />
+          <span>{successToast}</span>
+        </div>
+      )}
     </div>
   );
 };

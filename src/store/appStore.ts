@@ -279,8 +279,10 @@ interface AppState {
   deleteWorkLog: (id: string) => void;
   submitWorkLog: (id: string) => void;
   mentorApprove: (id: string, note?: string) => void;
+  mentorApproveAll: (ids?: string[]) => void;
   mentorReject: (id: string, note: string) => void;
   leadApprove: (id: string, note?: string) => void;
+  leadApproveAll: (ids?: string[]) => void;
   leadReject: (id: string, note: string) => void;
   addComment: (logId: string, content: string) => void;
   markNotificationAsRead: (id: string) => void;
@@ -779,6 +781,68 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  mentorApproveAll: (ids) => {
+    const user = get().currentUser;
+    set((state) => {
+      const targets = state.workLogs.filter((l) => {
+        if (ids && ids.length > 0) {
+          return ids.includes(l.id) && l.status === 'pending_mentor';
+        }
+        return l.status === 'pending_mentor';
+      });
+
+      if (targets.length === 0) return state;
+
+      const now = new Date().toISOString();
+      const newNotifications: AppNotification[] = [];
+      const targetIds = new Set(targets.map((t) => t.id));
+
+      const updatedWorkLogs = state.workLogs.map((log) => {
+        if (targetIds.has(log.id)) {
+          const action: ApprovalAction = {
+            id: 'act-' + Math.random().toString(36).substring(2, 9),
+            work_log_id: log.id,
+            actor_id: user.id,
+            action: 'approve',
+            from_status: 'pending_mentor',
+            to_status: 'pending_lead',
+            note: `อนุมัติทั้งหมดโดย ${user.full_name}`,
+            created_at: now,
+            actor: user,
+          };
+
+          newNotifications.push({
+            id: 'notif-trainee-' + Math.random().toString(36).substring(2, 9),
+            user_id: log.trainee_id,
+            title: 'พี่เลี้ยงตรวจงานเรียบร้อยแล้ว',
+            body: `งาน "${log.title}" ของคุณผ่านการตรวจจาก ${user.full_name} แล้ว และส่งไปยังหัวหน้าพี่เลี้ยง`,
+            type: 'approval',
+            reference_id: log.id,
+            is_read: false,
+            created_at: now,
+          });
+
+          if (log.trainee) {
+            const leadProfile = { email: MOCK_LEAD_EMAIL, full_name: 'หัวหน้าพี่เลี้ยง' };
+            notifyLeadPendingApproval(leadProfile, log.trainee, user, log.title);
+          }
+
+          return {
+            ...log,
+            status: 'pending_lead' as const,
+            approval_actions: [...(log.approval_actions || []), action],
+          };
+        }
+        return log;
+      });
+
+      return {
+        workLogs: updatedWorkLogs,
+        notifications: [...newNotifications, ...state.notifications],
+      };
+    });
+  },
+
   mentorReject: (id, note) => {
     const user = get().currentUser;
     set((state) => {
@@ -885,6 +949,68 @@ export const useAppStore = create<AppState>((set, get) => ({
             : log
         ),
         notifications: [notifyTrainee, ...state.notifications]
+      };
+    });
+  },
+
+  leadApproveAll: (ids) => {
+    const user = get().currentUser;
+    set((state) => {
+      const targets = state.workLogs.filter((l) => {
+        if (ids && ids.length > 0) {
+          return ids.includes(l.id) && l.status === 'pending_lead';
+        }
+        return l.status === 'pending_lead';
+      });
+
+      if (targets.length === 0) return state;
+
+      const now = new Date().toISOString();
+      const newNotifications: AppNotification[] = [];
+      const targetIds = new Set(targets.map((t) => t.id));
+
+      const updatedWorkLogs = state.workLogs.map((log) => {
+        if (targetIds.has(log.id)) {
+          const action: ApprovalAction = {
+            id: 'act-' + Math.random().toString(36).substring(2, 9),
+            work_log_id: log.id,
+            actor_id: user.id,
+            action: 'approve',
+            from_status: 'pending_lead',
+            to_status: 'approved',
+            note: `อนุมัติขั้นสุดท้ายทั้งหมดโดย ${user.full_name}`,
+            created_at: now,
+            actor: user,
+          };
+
+          newNotifications.push({
+            id: 'notif-approved-' + Math.random().toString(36).substring(2, 9),
+            user_id: log.trainee_id,
+            title: 'งานได้รับการอนุมัติสำเร็จ',
+            body: `หัวหน้าพี่เลี้ยงอนุมัติงาน "${log.title}" เรียบร้อยแล้ว`,
+            type: 'approval',
+            reference_id: log.id,
+            is_read: false,
+            created_at: now,
+          });
+
+          if (log.trainee) {
+            notifyTraineeApproved(log.trainee, log.title, 'อนุมัติเรียบร้อย');
+          }
+
+          return {
+            ...log,
+            status: 'approved' as const,
+            approved_at: now,
+            approval_actions: [...(log.approval_actions || []), action],
+          };
+        }
+        return log;
+      });
+
+      return {
+        workLogs: updatedWorkLogs,
+        notifications: [...newNotifications, ...state.notifications],
       };
     });
   },
