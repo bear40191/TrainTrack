@@ -65,7 +65,13 @@ export function notifyMentorPendingReview(
 }
 
 /**
- * แจ้ง Lead เมื่อ Mentor อนุมัติงานแล้ว
+ * [DEPRECATED / DISABLED ใน Work Log Lifecycle]
+ * รายการที่ 2-4 ของ Work Log Lifecycle ถูกตัดการแจ้งเตือนทางอีเมลออกตามความต้องการ
+ * เพื่อเปลี่ยนไปใช้ Mobile Push / Local Popup Notification บนหน้าจอ Lock Screen หรือ Status Bar แทน
+ */
+
+/**
+ * แจ้ง Lead เมื่อ Mentor อนุมัติงานแล้ว (ข้อ 2 - ย้ายไปใช้ Mobile Notification แทน)
  */
 export function notifyLeadPendingApproval(
   lead: { email: string; full_name: string },
@@ -84,7 +90,7 @@ export function notifyLeadPendingApproval(
 }
 
 /**
- * แจ้งนักศึกษาเมื่องานได้รับการอนุมัติสำเร็จ
+ * แจ้งนักศึกษาเมื่องานได้รับการอนุมัติสำเร็จ (ข้อ 3 - ย้ายไปใช้ Mobile Notification แทน)
  */
 export function notifyTraineeApproved(
   trainee: { email: string; full_name: string },
@@ -102,7 +108,7 @@ export function notifyTraineeApproved(
 }
 
 /**
- * แจ้งนักศึกษาเมื่องานถูกส่งกลับให้แก้ไข
+ * แจ้งนักศึกษาเมื่องานถูกส่งกลับให้แก้ไข (ข้อ 4 - ย้ายไปใช้ Mobile Notification แทน)
  */
 export function notifyTraineeRevisionRequired(
   trainee: { email: string; full_name: string },

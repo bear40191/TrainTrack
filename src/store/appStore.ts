@@ -4,13 +4,9 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import { verifyPassword, hashPassword, validatePasswordPolicy } from '@/lib/password';
 import {
   notifyMentorPendingReview,
-  notifyLeadPendingApproval,
-  notifyTraineeApproved,
-  notifyTraineeRevisionRequired,
 } from '@/services/emailNotification';
 
-// Mock email ของ Lead (ใช้ตอนยังไม่มี backend จริง)
-const MOCK_LEAD_EMAIL = 'veera.lead@traintrack.app';
+
 
 // รายชื่อพี่เลี้ยงหลายคน (Mentor List)
 export const MOCK_MENTORS: Profile[] = [
@@ -749,11 +745,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString()
       };
 
-      // email call in mentorApprove
-      const leadProfile = { email: MOCK_LEAD_EMAIL, full_name: 'หัวหน้าพี่เลี้ยง' };
-      if (target.trainee) {
-        notifyLeadPendingApproval(leadProfile, target.trainee, user, target.title);
-      }
+      // ข้อ 2: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
       const notifyTrainee: AppNotification = {
         id: 'notif-trainee-' + Date.now(),
@@ -822,10 +814,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             created_at: now,
           });
 
-          if (log.trainee) {
-            const leadProfile = { email: MOCK_LEAD_EMAIL, full_name: 'หัวหน้าพี่เลี้ยง' };
-            notifyLeadPendingApproval(leadProfile, log.trainee, user, log.title);
-          }
+          // ข้อ 2: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
           return {
             ...log,
@@ -861,15 +850,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         actor: user
       };
 
-      // email call in mentorReject
-      if (target.trainee) {
-        notifyTraineeRevisionRequired(target.trainee, user, target.title, note);
-      }
-
-      // email call in mentorReject
-      if (target.trainee) {
-        notifyTraineeRevisionRequired(target.trainee, user, target.title, note);
-      }
+      // ข้อ 4: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
       const notifyTrainee: AppNotification = {
         id: 'notif-reject-' + Date.now(),
@@ -916,15 +897,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         actor: user
       };
 
-      // email call in leadApprove
-      if (target.trainee) {
-        notifyTraineeApproved(target.trainee, target.title, note);
-      }
-
-      // email call in leadApprove
-      if (target.trainee) {
-        notifyTraineeApproved(target.trainee, target.title, note);
-      }
+      // ข้อ 3: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
       const notifyTrainee: AppNotification = {
         id: 'notif-approved-' + Date.now(),
@@ -994,9 +967,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             created_at: now,
           });
 
-          if (log.trainee) {
-            notifyTraineeApproved(log.trainee, log.title, 'อนุมัติเรียบร้อย');
-          }
+          // ข้อ 3: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
           return {
             ...log,
