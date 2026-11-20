@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
 import { Profile } from '@/lib/types';
 import { ROLE_LABELS } from '@/lib/constants';
+import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 import {
   Lock,
   Mail,
@@ -205,13 +206,13 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
 
         {/* Title matching user reference */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-lg bg-[#19705F] flex items-center justify-center text-white font-black text-xs shadow-sm">
-              TT
+          <div className="inline-flex items-center justify-center gap-2.5 mb-1.5">
+            <TrainTrackLogo variant="app-icon" size={34} />
+            <div className="flex items-center gap-2">
+              <TrainTrackLogo variant="wordmark" size={26} />
+              <span className="text-slate-300 font-light text-2xl">|</span>
+              <span className="text-2xl font-black text-slate-800">Login</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              TrainTrack <span className="text-slate-400 font-normal">-</span> Login
-            </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium">
             ระบบติดตาม & อนุมัติการฝึกงาน (Hybrid Application)

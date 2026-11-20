@@ -11,8 +11,8 @@ import {
   Shield,
   User,
   LogOut,
-  Asterisk
 } from 'lucide-react';
+import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 
 interface Props {
   activeTab: TabKey;
@@ -73,14 +73,14 @@ export const SidebarRail: React.FC<Props> = ({
 
   return (
     <aside className="hidden lg:flex flex-col items-center justify-between w-14 py-4 my-2.5 ml-3 bg-[#19705F] text-white rounded-[24px] shadow-pine shrink-0 z-40 border border-[#145C4E] h-[calc(100vh-20px)]">
-      {/* Brand Logo Top - Asterisk / Star icon matching the reference image */}
+      {/* Brand Logo Top - Interlocking TT Logo */}
       <div className="flex flex-col items-center gap-5">
         <button
           onClick={() => onTabChange('dashboard')}
-          className="relative group w-9 h-9 rounded-xl bg-gradient-to-tr from-[#6FD098] to-[#2BA185] flex items-center justify-center text-white shadow-md shadow-[#6FD098]/30 transition hover:scale-105 active:scale-95"
+          className="relative group w-9 h-9 rounded-xl bg-[#0E3E35] border border-[#2BA185]/40 flex items-center justify-center text-white shadow-md shadow-black/20 transition hover:scale-110 active:scale-95"
           aria-label="TrainTrack Home"
         >
-          <Asterisk className="w-5 h-5 stroke-[2.8] text-white" />
+          <TrainTrackLogo variant="icon" size={24} colorMode="white-mint" />
           <NavTooltip en="TRAINTRACK" th="หน้าหลัก" />
         </button>
 

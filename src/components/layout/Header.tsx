@@ -6,6 +6,7 @@ import { Bell, ChevronDown, X, Users2 } from 'lucide-react';
 import { RoleSelector } from './RoleSelector';
 import { ROLE_LABELS } from '@/lib/constants';
 import { TabKey } from './TabBar';
+import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 
 interface HeaderProps {
   activeTab?: TabKey;
@@ -97,20 +98,26 @@ export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenN
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between gap-3">
           {/* Left: Dynamic Page Title & Subtitle based on Active Tab and Role */}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight transition-all">
-                {headerInfo.title}
-              </h1>
-              {headerInfo.badge && (
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 transition-all">
-                  {headerInfo.badge}
-                </span>
-              )}
+          <div className="flex items-center gap-2.5">
+            {/* Mobile / Hybrid App Icon displayed on smaller screens where sidebar is hidden */}
+            <div className="lg:hidden shrink-0">
+              <TrainTrackLogo variant="app-icon" size={32} />
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 font-medium transition-all">
-              {headerInfo.subtitle}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight transition-all">
+                  {headerInfo.title}
+                </h1>
+                {headerInfo.badge && (
+                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 transition-all">
+                    {headerInfo.badge}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400 font-medium transition-all">
+                {headerInfo.subtitle}
+              </p>
+            </div>
           </div>
 
           {/* Right: Role Switcher, Notification Bell, User Avatar */}

@@ -7,12 +7,12 @@
 import React, { useState } from 'react';
 import {
   Mail,
-  KeyRound,
   CheckCircle2,
   AlertCircle,
   ArrowRight,
   Send,
 } from 'lucide-react';
+import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -63,10 +63,9 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-300/60 border border-slate-200/80 p-6 sm:p-8 overflow-hidden transition-all">
         
         {/* Brand Header Icon */}
-        <div className="w-full flex items-center justify-center mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-[#19705F] border border-emerald-200 flex items-center justify-center shadow-xs">
-            <KeyRound className="w-8 h-8" />
-          </div>
+        <div className="w-full flex flex-col items-center justify-center mb-4">
+          <TrainTrackLogo variant="app-icon" size={54} className="mb-2 shadow-md" />
+          <TrainTrackLogo variant="wordmark" size={20} />
         </div>
 
         <div className="text-center mb-6">
