@@ -272,13 +272,14 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
             </div>
 
             {/* ปุ่มลืมรหัสผ่าน (Forgot Password Link) */}
-            <div className="flex justify-end mt-1.5">
+            <div className="flex items-center justify-between mt-1.5 text-xs">
+              <span className="text-slate-400">จำรหัสผ่านไม่ได้?</span>
               <button
                 type="button"
                 onClick={handleOpenForgotPassword}
-                className="text-xs font-semibold text-[#19705F] hover:text-[#2BA185] hover:underline transition cursor-pointer"
+                className="font-bold text-[#19705F] hover:text-[#2BA185] hover:underline transition cursor-pointer"
               >
-                ลืมรหัสผ่าน? (เปลี่ยนรหัสผ่าน)
+                ลืมรหัสผ่าน?
               </button>
             </div>
           </div>
@@ -423,21 +424,29 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                   />
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                <div className="pt-2 flex items-center justify-between gap-2">
+                  <a
+                    href="/forgot-password"
+                    className="text-[11px] text-slate-400 hover:text-emerald-700 font-medium transition"
                   >
-                    ยกเลิก
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isForgotLoading}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-                  >
-                    {isForgotLoading ? 'กำลังส่งข้อมูล...' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน'}
-                  </button>
+                    เปิดหน้าเต็ม →
+                  </a>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isForgotLoading}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                    >
+                      {isForgotLoading ? 'กำลังส่งข้อมูล...' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน'}
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

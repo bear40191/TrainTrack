@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Profile, Role, WorkLog, AppNotification, ApprovalAction, Comment as AppComment } from '@/lib/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
-import { verifyPassword } from '@/lib/password';
+import { verifyPassword, hashPassword, validatePasswordPolicy } from '@/lib/password';
 import {
   notifyMentorPendingReview,
   notifyLeadPendingApproval,
@@ -314,14 +314,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!userExists) {
       return { success: false, message: 'ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบ' };
     }
-    if (!newPassword || newPassword.length < 4) {
-      return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+    const policy = validatePasswordPolicy(newPassword);
+    if (!policy.isValid) {
+      return { success: false, message: policy.message };
     }
 
+    const hashed = hashPassword(newPassword);
     set((state) => ({
       userPasswords: {
         ...state.userPasswords,
-        [trimmed]: newPassword,
+        [trimmed]: hashed,
       },
     }));
 

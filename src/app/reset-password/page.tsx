@@ -151,11 +151,11 @@ export default function ResetPasswordPage() {
               {isInvalidToken && (
                 <div className="mt-3">
                   <a
-                    href="/"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                    href="/forgot-password"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    ขอลิงก์รีเซ็ตใหม่ที่หน้าเข้าสู่ระบบ
+                    ขอลิงก์รีเซ็ตรหัสผ่านใหม่
                   </a>
                 </div>
               )}

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
 import { ROLE_LABELS } from '@/lib/constants';
+import { validatePasswordPolicy } from '@/lib/password';
 import {
   X,
   Mail,
@@ -55,8 +56,9 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
     e.preventDefault();
     setPwdFeedback(null);
 
-    if (newPassword.length < 4) {
-      setPwdFeedback({ success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' });
+    const policy = validatePasswordPolicy(newPassword);
+    if (!policy.isValid) {
+      setPwdFeedback({ success: false, message: policy.message });
       return;
     }
 
@@ -342,7 +344,7 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
                       type={showPwd ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="กำหนดรหัสผ่านใหม่อย่างน้อย 4 ตัวอักษร"
+                      placeholder="ตัวอักษรและตัวเลขอย่างน้อย 8 ตัว"
                       required
                       className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800"
                     />
