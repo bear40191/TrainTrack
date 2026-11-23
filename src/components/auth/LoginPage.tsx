@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
-import { Profile } from '@/lib/types';
-import { ROLE_LABELS } from '@/lib/constants';
+import { useAppStore } from '@/store/appStore';
+import { Role } from '@/lib/types';
 import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 import {
   Lock,
@@ -22,15 +21,59 @@ import {
   Check
 } from 'lucide-react';
 
+interface RoleDemoAccount {
+  role: Role;
+  roleTitle: string;
+  name: string;
+  email: string;
+  desc: string;
+  icon: React.ReactNode;
+}
+
+const ROLE_DEMO_ACCOUNTS: RoleDemoAccount[] = [
+  {
+    role: 'trainee',
+    roleTitle: 'นักศึกษา (Trainee)',
+    name: 'กิตติศักดิ์ พัฒนาดี',
+    email: 'kittisak.trainee@traintrack.app',
+    desc: 'บันทึกงาน & งานของฉัน',
+    icon: <Briefcase className="w-4 h-4 text-emerald-600" />,
+  },
+  {
+    role: 'mentor',
+    roleTitle: 'พี่เลี้ยง (Mentor)',
+    name: 'พี่สมชาย ชูใจ',
+    email: 'somchai.frontend@traintrack.app',
+    desc: 'ตรวจงาน & ยืนยันผลงาน',
+    icon: <UserCheck className="w-4 h-4 text-teal-600" />,
+  },
+  {
+    role: 'lead',
+    roleTitle: 'หัวหน้าพี่เลี้ยง (Lead)',
+    name: 'หัวหน้าวีระ ชัยชนะ',
+    email: 'veera.lead@traintrack.app',
+    desc: 'อนุมัติขั้นสุดท้ายทั้งทีม',
+    icon: <Users className="w-4 h-4 text-indigo-600" />,
+  },
+  {
+    role: 'admin',
+    roleTitle: 'ผู้ดูแลระบบ (Admin)',
+    name: 'ผู้ดูแลระบบสูงสุด',
+    email: 'admin@traintrack.app',
+    desc: 'จัดการผู้ใช้ & นำเข้าข้อมูล',
+    icon: <ShieldCheck className="w-4 h-4 text-purple-600" />,
+  },
+];
+
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
   const { login } = useAppStore();
-  const [email, setEmail] = useState('kittisak.trainee@traintrack.app');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedDemoUser, setSelectedDemoUser] = useState<Profile | null>(ALL_DEMO_USERS[0]);
+  const [selectedDemoEmail, setSelectedDemoEmail] = useState<string | null>(null);
 
   // State สำหรับ Modal ลืมรหัสผ่าน (ขอรับลิงก์รีเซ็ตทางอีเมลตาม Spec 2026-11-20)
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -39,9 +82,9 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
-  const handleSelectDemoUser = (user: Profile) => {
-    setSelectedDemoUser(user);
-    setEmail(user.email);
+  const handleSelectDemoAccount = (acc: RoleDemoAccount) => {
+    setSelectedDemoEmail(acc.email);
+    setEmail(acc.email);
     setPassword('123456');
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -100,21 +143,6 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
       setForgotSuccess('ถ้าอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์ให้แล้ว');
     } finally {
       setIsForgotLoading(false);
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'trainee':
-        return <Briefcase className="w-3.5 h-3.5 text-emerald-600" />;
-      case 'mentor':
-        return <UserCheck className="w-3.5 h-3.5 text-blue-600" />;
-      case 'lead':
-        return <Users className="w-3.5 h-3.5 text-indigo-600" />;
-      case 'admin':
-        return <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />;
-      default:
-        return <Briefcase className="w-3.5 h-3.5 text-slate-500" />;
     }
   };
 
@@ -305,42 +333,47 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
         {/* Quick Demo Account Selector */}
         <div className="mt-6 pt-5 border-t border-slate-100">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-              บัญชีทดสอบด่วน (คลิกเพื่อเลือก)
+            <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+              บัญชีทดสอบแยกตาม 4 บทบาท (คลิกเพื่อเลือก)
             </span>
-            <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              6 บัญชีจำลอง
+            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              รหัสผ่าน: 123456
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-0.5">
-            {ALL_DEMO_USERS.map((user) => {
-              const isSelected = selectedDemoUser?.email === user.email;
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ROLE_DEMO_ACCOUNTS.map((acc) => {
+              const isSelected = selectedDemoEmail === acc.email;
               return (
                 <button
-                  key={user.id}
+                  key={acc.role}
                   type="button"
-                  onClick={() => handleSelectDemoUser(user)}
-                  className={`flex items-center gap-2 p-2 rounded-xl text-left border transition text-xs ${
+                  onClick={() => handleSelectDemoAccount(acc)}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-2xl text-left border transition cursor-pointer ${
                     isSelected
-                      ? 'bg-emerald-50/90 border-emerald-500/80 text-emerald-950 font-semibold shadow-xs'
-                      : 'bg-slate-50/80 border-slate-200 hover:bg-slate-100/80 text-slate-700'
+                      ? 'bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-xs ring-1 ring-emerald-500'
+                      : 'bg-slate-50/80 border-slate-200 hover:bg-slate-100/90 hover:border-slate-300 text-slate-700'
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-xs">
-                    {getRoleIcon(user.role)}
+                  <div className="w-7 h-7 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                    {acc.icon}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold truncate leading-tight">
-                      {user.full_name.split(' ')[0]}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-black truncate text-slate-900">
+                        {acc.roleTitle}
+                      </span>
+                      {isSelected && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-600 font-medium truncate">
+                      {acc.name}
                     </p>
-                    <p className="text-[10px] text-slate-500 truncate leading-tight">
-                      {ROLE_LABELS[user.role].split(' ')[0]}
+                    <p className="text-[9px] text-slate-400 truncate">
+                      {acc.desc}
                     </p>
                   </div>
-                  {isSelected && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  )}
                 </button>
               );
             })}

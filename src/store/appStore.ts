@@ -285,7 +285,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  isAuthenticated: true,
+  isAuthenticated: false,
   userPasswords: {
     'kittisak.trainee@traintrack.app': '123456',
     'somchai.frontend@traintrack.app': '123456',
