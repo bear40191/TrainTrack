@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import { Header } from '@/components/layout/Header';
@@ -17,11 +17,33 @@ import { ProfileModal } from '@/components/profile/ProfileModal';
 import { LoginPage } from '@/components/auth/LoginPage';
 
 export default function HomePage() {
-  const { workLogs, isAuthenticated, logout } = useAppStore();
+  const { currentUser, workLogs, isAuthenticated, logout } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const isTrainee = currentUser?.role === 'trainee';
+  const isMentor = currentUser?.role === 'mentor';
+  const isLead = currentUser?.role === 'lead';
+  const isAdmin = currentUser?.role === 'admin';
+
+  // ตรวจสอบและบังคับสิทธิ์การเข้าถึงแท็บตามบทบาทของผู้ใช้ (Role Tab Guard)
+  useEffect(() => {
+    if (!currentUser?.role) return;
+
+    const allowedTabs: Record<string, TabKey[]> = {
+      trainee: ['dashboard', 'create', 'my-logs'],
+      mentor: ['dashboard', 'reviews'],
+      lead: ['dashboard', 'reviews'],
+      admin: ['dashboard', 'admin'],
+    };
+
+    const permitted = allowedTabs[currentUser.role] || ['dashboard'];
+    if (!permitted.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [currentUser?.role, activeTab]);
 
   const handleSelectLogById = (logId: string) => {
     const found = workLogs.find((l) => l.id === logId);
@@ -73,21 +95,25 @@ export default function HomePage() {
               />
             )}
 
-            {activeTab === 'create' && (
+            {/* บันทึกงานใหม่ (เฉพาะนักศึกษา) */}
+            {activeTab === 'create' && isTrainee && (
               <div className="pb-20 max-w-3xl mx-auto">
                 <WorkLogForm onSuccess={() => setActiveTab('my-logs')} />
               </div>
             )}
 
-            {activeTab === 'my-logs' && (
+            {/* งานของฉัน (เฉพาะนักศึกษา) */}
+            {activeTab === 'my-logs' && isTrainee && (
               <MyLogsView onSelectLog={(log) => setSelectedLog(log)} />
             )}
 
-            {activeTab === 'reviews' && (
+            {/* ตรวจงาน / อนุมัติ (เฉพาะพี่เลี้ยง และ หัวหน้าพี่เลี้ยง) */}
+            {activeTab === 'reviews' && (isMentor || isLead) && (
               <ReviewListView onSelectLog={(log) => setSelectedLog(log)} />
             )}
 
-            {activeTab === 'admin' && <AdminView />}
+            {/* จัดการระบบ (เฉพาะผู้ดูแลระบบ Admin) */}
+            {activeTab === 'admin' && isAdmin && <AdminView />}
           </div>
         </main>
       </div>

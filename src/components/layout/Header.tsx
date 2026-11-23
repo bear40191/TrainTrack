@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAppStore } from '@/store/appStore';
-import { Bell, ChevronDown, X, Users2 } from 'lucide-react';
-import { RoleSelector } from './RoleSelector';
+import { Bell } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/constants';
 import { TabKey } from './TabBar';
 import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
@@ -88,7 +87,6 @@ function getHeaderContent(tab: TabKey = 'dashboard', role: string) {
 export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenNotif, onOpenProfile }) => {
   const { currentUser, notifications } = useAppStore();
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const [showRoleSelector, setShowRoleSelector] = useState(false);
 
   // ดึงหัวข้อและคำอธิบายตามแท็บปัจจุบันและบทบาทของผู้ใช้งาน
   const headerInfo = getHeaderContent(activeTab, currentUser.role);
@@ -120,23 +118,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenN
             </div>
           </div>
 
-          {/* Right: Role Switcher, Notification Bell, User Avatar */}
+          {/* Right: Notification Bell & User Avatar */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Quick Role Switcher Pill */}
-            <button
-              onClick={() => setShowRoleSelector(!showRoleSelector)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${
-                showRoleSelector
-                  ? 'bg-[#19705F] text-white border-[#19705F]'
-                  : 'bg-white border-slate-200 hover:border-[#2BA185] text-slate-700'
-              }`}
-              title="สลับสิทธิ์การใช้งาน (Role Switcher)"
-            >
-              <Users2 className="w-3.5 h-3.5 text-[#2BA185]" />
-              <span className="hidden md:inline">สลับสิทธิ์</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-
             {/* Notification Bell with green indicator */}
             <button
               onClick={onOpenNotif}
@@ -174,22 +157,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab = 'dashboard', onOpenN
             </button>
           </div>
         </div>
-
-        {/* Popover / Collapsible Role Switcher */}
-        {showRoleSelector && (
-          <div className="mt-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-xl relative animate-fadeIn z-30">
-            <div className="flex items-center justify-between px-2 pb-1.5 mb-1.5 border-b border-slate-100">
-              <span className="text-[11px] font-bold text-slate-700">สลับสิทธิ์การทดสอบ</span>
-              <button
-                onClick={() => setShowRoleSelector(false)}
-                className="text-slate-400 hover:text-slate-600 p-0.5"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <RoleSelector />
-          </div>
-        )}
       </div>
     </header>
   );

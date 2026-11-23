@@ -46,12 +46,15 @@ export const WorkLogDetailModal: React.FC<Props> = ({ log, onClose }) => {
   const [editDescription, setEditDescription] = useState(log.description);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Permissions: นักศึกษาสามารถแก้ไขและลบงานได้ (รวมถึง admin)
-  const canEditOrDelete = currentUser.role === 'trainee' || currentUser.role === 'admin';
+  // Permissions: นักศึกษาสามารถแก้ไขและลบงานได้ (เฉพาะงานของตนเอง และเฉพาะสถานะ draft หรือ revision_required) หรือ admin
+  const isOwnLog = log.trainee_id === currentUser.id;
+  const isEditableStatus = log.status === 'draft' || log.status === 'revision_required';
+  const canEditOrDelete = (currentUser.role === 'trainee' && isOwnLog && isEditableStatus) || currentUser.role === 'admin';
 
   const canTraineeSubmit = 
     currentUser.role === 'trainee' && 
-    (log.status === 'draft' || log.status === 'revision_required');
+    isOwnLog &&
+    isEditableStatus;
 
   const isAssignedMentor = !log.assigned_mentor_id || log.assigned_mentor_id === currentUser.id;
   const canMentorReview = 
