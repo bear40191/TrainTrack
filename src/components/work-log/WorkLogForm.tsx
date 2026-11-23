@@ -4,7 +4,18 @@ import React, { useState, useRef } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { Attachment } from '@/lib/types';
 import { sanitizeText } from '@/lib/security';
-import { Camera, Send, Save, AlertCircle, X, Plus, Trash2, UserCheck, Calendar } from 'lucide-react';
+import {
+  Camera,
+  Send,
+  Save,
+  AlertCircle,
+  X,
+  Plus,
+  Trash2,
+  UserCheck,
+  Calendar,
+  Image as ImageIcon
+} from 'lucide-react';
 
 interface Props {
   onSuccess: () => void;
@@ -56,6 +67,55 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs สำหรับ File Inputs (กล้องถ่ายรูป และ คลังรูปภาพในเครื่อง)
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // จัดการเมื่อเลือกไฟล์รูปภาพจากเครื่องหรือถ่ายรูปผ่านกล้อง
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 5 - attachments.length;
+    if (remainingSlots <= 0) {
+      alert('แนบรูปได้สูงสุด 5 รูปแล้ว');
+      e.target.value = '';
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      alert(`สามารถเพิ่มได้อีกเพียง ${remainingSlots} รูปเท่านั้น`);
+    }
+
+    filesToProcess.forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        alert(`ไฟล์ "${file.name}" ไม่ใช่รูปภาพ`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          const newAtt: Attachment = {
+            id: 'att-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+            work_log_id: '',
+            file_name: file.name || `photo_${Date.now()}.jpg`,
+            file_url: result,
+            file_type: 'image',
+            file_size: file.size,
+            created_at: new Date().toISOString(),
+          };
+          setAttachments((prev) => (prev.length < 5 ? [...prev, newAtt] : prev));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
   // จัดการการเปลี่ยนวันที่จาก Date Picker
   const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
@@ -94,30 +154,6 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
     addCategory(newCategoryName.trim());
     setCategory(newCategoryName.trim());
     setNewCategoryName('');
-  };
-
-  const handleAddSampleImage = () => {
-    if (attachments.length >= 5) {
-      alert('แนบรูปได้สูงสุด 5 รูป');
-      return;
-    }
-    const sampleImages = [
-      'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600',
-      'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600',
-      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600'
-    ];
-    const picked = sampleImages[attachments.length % sampleImages.length];
-
-    const newAtt: Attachment = {
-      id: 'att-' + Date.now(),
-      work_log_id: '',
-      file_name: `evidence_${attachments.length + 1}.jpg`,
-      file_url: picked,
-      file_type: 'image',
-      file_size: 1024 * 320,
-      created_at: new Date().toISOString()
-    };
-    setAttachments([...attachments, newAtt]);
   };
 
   const handleRemoveAttachment = (id: string) => {
@@ -344,33 +380,99 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
 
         {/* แนบรูปภาพ / หลักฐาน */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-semibold text-slate-700">
-              รูปภาพประกอบหรือหลักฐาน ({attachments.length}/5)
-            </label>
-            <button
-              type="button"
-              onClick={handleAddSampleImage}
-              className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 transition"
-            >
-              <Camera className="w-4 h-4" />
-              + เพิ่มรูปภาพ
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div>
+              <label className="text-sm font-semibold text-slate-700">
+                รูปภาพประกอบหรือหลักฐาน ({attachments.length}/5)
+              </label>
+              <p className="text-[11px] text-slate-400">
+                ถ่ายภาพหน้างาน หรือเลือกรูปจากแกลเลอรีในเครื่อง (สูงสุด 5 รูป)
+              </p>
+            </div>
+            
+            {/* ปุ่มถ่ายรูป และ ปุ่มเลือกรูปจากเครื่อง */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={attachments.length >= 5}
+                className="text-xs text-emerald-700 hover:text-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shadow-2xs cursor-pointer"
+                title="เปิดกล้องเพื่อถ่ายภาพทันที"
+              >
+                <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                <span>ถ่ายภาพ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={attachments.length >= 5}
+                className="text-xs text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 transition shadow-2xs cursor-pointer"
+                title="เลือกไฟล์รูปภาพจากเครื่องหรือคลังภาพ"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                <span>เลือกรูปจากเครื่อง</span>
+              </button>
+            </div>
           </div>
 
-          {attachments.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
+          {/* Hidden File Inputs */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFilesSelected}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFilesSelected}
+          />
+
+          {attachments.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {attachments.map((att) => (
-                <div key={att.id} className="relative group rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm">
-                  <img src={att.file_url} alt={att.file_name} className="w-full h-full object-cover" />
+                <div
+                  key={att.id}
+                  className="relative group rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm transition hover:shadow-md"
+                >
+                  <img
+                    src={att.file_url}
+                    alt={att.file_name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                    <span className="text-[10px] text-white font-medium truncate max-w-[80%]">
+                      {att.file_name}
+                    </span>
+                  </div>
                   <button
+                    type="button"
                     onClick={() => handleRemoveAttachment(att.id)}
-                    className="absolute top-1.5 right-1.5 bg-slate-900/70 hover:bg-rose-600 text-white p-1.5 rounded-full transition"
+                    className="absolute top-1.5 right-1.5 bg-slate-900/80 hover:bg-rose-600 text-white p-1.5 rounded-full transition shadow-sm cursor-pointer"
+                    title="ลบรูปภาพนี้"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50/60">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 border border-emerald-100">
+                <Camera className="w-5 h-5" />
+              </div>
+              <p className="text-xs text-slate-600 font-semibold">
+                ยังไม่มีรูปภาพประกอบ
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                คลิกปุ่ม &ldquo;ถ่ายภาพ&rdquo; หรือ &ldquo;เลือกรูปจากเครื่อง&rdquo; ด้านบนเพื่อแนบหลักฐาน
+              </p>
             </div>
           )}
         </div>

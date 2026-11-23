@@ -249,6 +249,7 @@ interface AppState {
   userPasswords: Record<string, string>;
   login: (email: string, password?: string) => boolean;
   logout: () => void;
+  restoreSession: () => void;
   changePassword: (email: string, newPassword: string) => { success: boolean; message: string };
   updateUserPassword: (email: string, hashedOrPlain: string) => void;
   // Actions
@@ -283,6 +284,24 @@ interface AppState {
   addComment: (logId: string, content: string) => void;
   markNotificationAsRead: (id: string) => void;
 }
+
+// ค่าคงที่สำหรับระบบจดจำการล็อกอิน 72 ชั่วโมง (Session Persistence)
+const SESSION_MAX_AGE_MS = 72 * 60 * 60 * 1000; // 72 ชั่วโมง
+const SESSION_KEY = 'traintrack_session_v1';
+
+const saveSessionToStorage = (email: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          email: email.trim().toLowerCase(),
+          timestamp: Date.now(),
+        })
+      );
+    } catch {}
+  }
+};
 
 export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
@@ -343,39 +362,85 @@ export const useAppStore = create<AppState>((set, get) => ({
         return false;
       }
       set({ currentUser: found, isAuthenticated: true });
+      saveSessionToStorage(found.email);
       return true;
     }
     // Match by keywords if typed loosely
     if (trimmed.includes('trainee') || trimmed.includes('นักศึกษา')) {
       const firstTrainee = get().trainees[0] || MOCK_USERS.trainee;
       set({ currentUser: firstTrainee, isAuthenticated: true });
+      saveSessionToStorage(firstTrainee.email);
       return true;
     }
     if (trimmed.includes('somchai') || trimmed.includes('frontend')) {
-      set({ currentUser: get().mentors[0] || MOCK_MENTORS[0], isAuthenticated: true });
+      const mentor = get().mentors[0] || MOCK_MENTORS[0];
+      set({ currentUser: mentor, isAuthenticated: true });
+      saveSessionToStorage(mentor.email);
       return true;
     }
     if (trimmed.includes('vipada') || trimmed.includes('backend')) {
-      set({ currentUser: get().mentors[1] || MOCK_MENTORS[1], isAuthenticated: true });
+      const mentor = get().mentors[1] || MOCK_MENTORS[1];
+      set({ currentUser: mentor, isAuthenticated: true });
+      saveSessionToStorage(mentor.email);
       return true;
     }
     if (trimmed.includes('arnon') || trimmed.includes('devops')) {
-      set({ currentUser: get().mentors[2] || MOCK_MENTORS[2], isAuthenticated: true });
+      const mentor = get().mentors[2] || MOCK_MENTORS[2];
+      set({ currentUser: mentor, isAuthenticated: true });
+      saveSessionToStorage(mentor.email);
       return true;
     }
     if (trimmed.includes('lead') || trimmed.includes('หัวหน้า')) {
-      set({ currentUser: get().leads[0] || MOCK_USERS.lead, isAuthenticated: true });
+      const lead = get().leads[0] || MOCK_USERS.lead;
+      set({ currentUser: lead, isAuthenticated: true });
+      saveSessionToStorage(lead.email);
       return true;
     }
     if (trimmed.includes('admin') || trimmed.includes('ผู้ดูแล')) {
       set({ currentUser: MOCK_USERS.admin, isAuthenticated: true });
+      saveSessionToStorage(MOCK_USERS.admin.email);
       return true;
     }
     return false;
   },
 
   logout: () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(SESSION_KEY);
+      } catch {}
+    }
     set({ isAuthenticated: false });
+  },
+
+  restoreSession: () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.email || !parsed.timestamp) {
+        localStorage.removeItem(SESSION_KEY);
+        return;
+      }
+      const now = Date.now();
+      // ตรวจสอบว่าเกิน 72 ชั่วโมงหรือไม่
+      if (now - parsed.timestamp > SESSION_MAX_AGE_MS) {
+        localStorage.removeItem(SESSION_KEY);
+        set({ isAuthenticated: false });
+        return;
+      }
+      // ยังไม่เกิน 72 ชั่วโมง ดึงข้อมูลผู้ใช้เพื่อล็อกอินต่ออัตโนมัติ
+      const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+      const found = allUsers.find(
+        (u) => u.email.toLowerCase() === parsed.email.toLowerCase()
+      );
+      if (found) {
+        set({ currentUser: found, isAuthenticated: true });
+      }
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+    }
   },
   currentUser: MOCK_USERS.trainee,
   mentors: MOCK_MENTORS,

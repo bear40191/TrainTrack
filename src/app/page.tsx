@@ -17,11 +17,18 @@ import { ProfileModal } from '@/components/profile/ProfileModal';
 import { LoginPage } from '@/components/auth/LoginPage';
 
 export default function HomePage() {
-  const { currentUser, workLogs, isAuthenticated, logout } = useAppStore();
+  const { currentUser, workLogs, isAuthenticated, logout, restoreSession } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+
+  // กู้คืนเซสชันเมื่อเปิดแอปหรือรีเฟรชหน้า (จดจำเซสชัน 72 ชั่วโมง)
+  useEffect(() => {
+    restoreSession();
+    setIsSessionLoaded(true);
+  }, [restoreSession]);
 
   const isTrainee = currentUser?.role === 'trainee';
   const isMentor = currentUser?.role === 'mentor';
@@ -51,6 +58,15 @@ export default function HomePage() {
       setSelectedLog(found);
     }
   };
+
+  // รอตรวจสอบเซสชันใน localStorage ก่อนแสดงผลเพื่อป้องกันการกระพริบหน้า
+  if (!isSessionLoaded) {
+    return (
+      <div className="min-h-screen bg-[#EFEFEF] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้า Login
   if (!isAuthenticated) {
