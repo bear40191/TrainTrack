@@ -26,6 +26,22 @@ export function formatDateTime(dateString: string): string {
   }
 }
 
+/** แปลงวันที่ ISO หรือ YYYY-MM-DD เป็น วัน/เดือน/ปี (DD/MM/YYYY) */
+export function formatToDMY(dateString: string): string {
+  if (!dateString) return '';
+  const clean = dateString.split('T')[0];
+  const parts = clean.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD -> DD/MM/YYYY
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    // DD-MM-YYYY or DD/MM/YYYY
+    return `${parts[0]}/${parts[1]}/${parts[2]}`;
+  }
+  return dateString;
+}
+
 // โทนสีสถานะแบบ Clean Professional (พื้นขาว/เทาอ่อน สบายตา)
 export function getStatusBadgeStyle(status: WorkLogStatus): {
   badgeClass: string;

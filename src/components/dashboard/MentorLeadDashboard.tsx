@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
+import { formatToDMY } from '@/lib/utils';
 import {
   CheckCircle2,
   Clock,
@@ -298,7 +299,7 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
                           {log.trainee?.full_name?.split(' ')[0] || 'นักศึกษา'}
                         </span>
                         <span className="text-xs font-semibold text-slate-600">
-                          {log.work_date}
+                          {formatToDMY(log.work_date)}
                         </span>
                         <span className="text-xs font-medium text-slate-400">
                           • {log.category}
@@ -467,7 +468,7 @@ export const MentorLeadDashboard: React.FC<Props> = ({ onSelectLog, onNavigateTa
                         {log.title}
                       </p>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {log.trainee?.full_name?.split(' ')[0]} • {log.work_date}
+                        {log.trainee?.full_name?.split(' ')[0]} • {formatToDMY(log.work_date)}
                       </p>
                     </div>
                   </div>

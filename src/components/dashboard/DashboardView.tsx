@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { WorkLog } from '@/lib/types';
 import { TabKey } from '@/components/layout/TabBar';
+import { formatToDMY } from '@/lib/utils';
 import { MentorLeadDashboard } from './MentorLeadDashboard';
 import { AdminDashboardView } from './AdminDashboardView';
 import {
@@ -20,7 +21,6 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  User,
   Calendar,
   RotateCcw
 } from 'lucide-react';
@@ -32,13 +32,12 @@ interface Props {
 }
 
 export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNavigateTab }) => {
-  const { currentUser, workLogs, mentors, trainees } = useAppStore();
+  const { currentUser, workLogs, mentors } = useAppStore();
 
   // State สำหรับระบบฟิลเตอร์ของ "รายการงานล่าสุด"
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'revision_required'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [personFilter, setPersonFilter] = useState<string>('all'); // 'all' | 'trainee:ID' | 'mentor:ID'
   const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD
 
   const isTrainee = currentUser.role === 'trainee';
@@ -69,37 +68,18 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
     return Array.from(set);
   }, [workLogs]);
 
-  // รวมรายชื่อบุคคล (นักศึกษาและพี่เลี้ยง) เพื่อใช้ใน Dropdown Filter
-  const personOptions = useMemo(() => {
-    const traineeMap = new Map<string, string>();
-    trainees.forEach((t) => traineeMap.set(t.id, t.full_name));
-    workLogs.forEach((l) => {
-      if (l.trainee) traineeMap.set(l.trainee.id, l.trainee.full_name);
-    });
-
-    const mentorMap = new Map<string, string>();
-    mentors.forEach((m) => mentorMap.set(m.id, m.full_name));
-    workLogs.forEach((l) => {
-      if (l.assigned_mentor) mentorMap.set(l.assigned_mentor.id, l.assigned_mentor.full_name);
-    });
-
-    return {
-      trainees: Array.from(traineeMap.entries()).map(([id, name]) => ({ id, name })),
-      mentors: Array.from(mentorMap.entries()).map(([id, name]) => ({ id, name })),
-    };
-  }, [trainees, mentors, workLogs]);
-
   // ประมวลผล Filter ของตารางรายการงานล่าสุด (เรียงจากบนลงล่าง: รายการล่าสุดอยู่บนสุด)
+  // นักศึกษาฝึกงานจะดูได้เฉพาะงานของตนเองเท่านั้น (myTraineeLogs)
   const filteredLogs = useMemo(() => {
-    const list = workLogs.filter((log) => {
-      // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อผู้บันทึก หรือชื่อพี่เลี้ยง
+    const baseList = isTrainee ? myTraineeLogs : workLogs;
+    const list = baseList.filter((log) => {
+      // 1. ค้นหาจากชื่อ หรือรายละเอียด หรือชื่อพี่เลี้ยง
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchTitle = log.title.toLowerCase().includes(q);
-        const matchTrainee = log.trainee?.full_name?.toLowerCase().includes(q);
         const matchMentor = log.assigned_mentor?.full_name?.toLowerCase().includes(q);
         const matchDesc = log.description?.toLowerCase().includes(q);
-        if (!matchTitle && !matchTrainee && !matchMentor && !matchDesc) return false;
+        if (!matchTitle && !matchMentor && !matchDesc) return false;
       }
 
       // 2. กรองตามสถานะ
@@ -116,18 +96,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
         if (log.category !== categoryFilter) return false;
       }
 
-      // 4. กรองตามคน (นักศึกษา หรือ พี่เลี้ยง)
-      if (personFilter !== 'all') {
-        if (personFilter.startsWith('trainee:')) {
-          const tId = personFilter.replace('trainee:', '');
-          if (log.trainee_id !== tId && log.trainee?.id !== tId) return false;
-        } else if (personFilter.startsWith('mentor:')) {
-          const mId = personFilter.replace('mentor:', '');
-          if (log.assigned_mentor_id !== mId && log.assigned_mentor?.id !== mId) return false;
-        }
-      }
-
-      // 5. กรองตามวันที่ (YYYY-MM-DD)
+      // 4. กรองตามวันที่ (YYYY-MM-DD)
       if (dateFilter) {
         if (!log.work_date.startsWith(dateFilter)) return false;
       }
@@ -142,21 +111,19 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
       if (dateB !== dateA) return dateB - dateA;
       return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
     });
-  }, [workLogs, searchQuery, statusFilter, categoryFilter, personFilter, dateFilter]);
+  }, [isTrainee, myTraineeLogs, workLogs, searchQuery, statusFilter, categoryFilter, dateFilter]);
 
   // ตรวจสอบว่ามีการเปิดใช้ตัวกรองอยู่หรือไม่
   const isAnyFilterActive =
     searchQuery.trim() !== '' ||
     statusFilter !== 'all' ||
     categoryFilter !== 'all' ||
-    personFilter !== 'all' ||
     dateFilter !== '';
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
     setCategoryFilter('all');
-    setPersonFilter('all');
     setDateFilter('');
   };
 
@@ -320,7 +287,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                          {log.work_date} • {log.assigned_mentor?.full_name?.split(' ')[0] || 'พี่เลี้ยง'}
+                          {formatToDMY(log.work_date)} • {log.assigned_mentor?.full_name?.split(' ')[0] || 'พี่เลี้ยง'}
                         </p>
                       </div>
                     </div>
@@ -448,50 +415,23 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                   </button>
                 </div>
 
-                {/* Filter Controls: Person, Date, Category, Reset */}
+                {/* Filter Controls: Date, Category, Reset */}
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {/* Person Filter Dropdown */}
+                  {/* Date Filter Input (รูปแบบ วัน/เดือน/ปี) */}
                   <div className="relative inline-flex items-center">
-                    <User className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" />
-                    <select
-                      value={personFilter}
-                      onChange={(e) => setPersonFilter(e.target.value)}
-                      className="appearance-none bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 pr-6 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
-                      title="กรองตามบุคคล (นักศึกษา หรือ พี่เลี้ยง)"
+                    <label
+                      className="flex items-center gap-1.5 bg-[#EFEFEF] hover:bg-slate-200 border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 cursor-pointer text-xs transition shadow-2xs"
+                      title="คลิกเพื่อเลือกกรองตามวันที่ทำงาน (วัน/เดือน/ปี)"
                     >
-                      <option value="all">ทุกคน (All)</option>
-                      {personOptions.trainees.length > 0 && (
-                        <optgroup label="── นักศึกษา (Trainees) ──">
-                          {personOptions.trainees.map((t) => (
-                            <option key={`trainee:${t.id}`} value={`trainee:${t.id}`}>
-                              นักศึกษา: {t.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {personOptions.mentors.length > 0 && (
-                        <optgroup label="── พี่เลี้ยง (Mentors) ──">
-                          {personOptions.mentors.map((m) => (
-                            <option key={`mentor:${m.id}`} value={`mentor:${m.id}`}>
-                              พี่เลี้ยง: {m.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </select>
-                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
-                  </div>
-
-                  {/* Date Filter Input */}
-                  <div className="relative inline-flex items-center">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" />
-                    <input
-                      type="date"
-                      value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      title="กรองตามวันที่ทำงาน"
-                      className="bg-[#EFEFEF] border border-slate-200 hover:border-slate-300 rounded-lg px-2 py-1 font-bold text-slate-700 focus:outline-none cursor-pointer text-xs"
-                    />
+                      <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>{dateFilter ? formatToDMY(dateFilter) : 'เลือกวันที่ (วัน/เดือน/ปี)'}</span>
+                      <input
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="sr-only"
+                      />
+                    </label>
                     {dateFilter && (
                       <button
                         onClick={() => setDateFilter('')}
@@ -580,7 +520,7 @@ export const DashboardView: React.FC<Props> = ({ onOpenCreate, onSelectLog, onNa
                           </span>
                         </td>
                         <td className="py-2.5 px-2.5 text-slate-600 font-medium whitespace-nowrap text-xs">
-                          {log.work_date}
+                          {formatToDMY(log.work_date)}
                         </td>
                         <td className="py-2.5 px-2.5 whitespace-nowrap">
                           <span
