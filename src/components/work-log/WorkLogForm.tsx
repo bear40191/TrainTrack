@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { Attachment } from '@/lib/types';
 import { sanitizeText } from '@/lib/security';
+import { uploadAttachmentToStorage } from '@/services/db';
 import {
   Camera,
   Send,
@@ -98,8 +99,9 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
       reader.onload = (event) => {
         const result = event.target?.result;
         if (typeof result === 'string') {
+          const newAttId = 'att-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
           const newAtt: Attachment = {
-            id: 'att-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+            id: newAttId,
             work_log_id: '',
             file_name: file.name || `photo_${Date.now()}.jpg`,
             file_url: result,
@@ -108,6 +110,15 @@ export const WorkLogForm: React.FC<Props> = ({ onSuccess }) => {
             created_at: new Date().toISOString(),
           };
           setAttachments((prev) => (prev.length < 5 ? [...prev, newAtt] : prev));
+
+          // อัปโหลดขึ้น Supabase Storage (ถ้าเชื่อมต่อได้ จะแทนที่ด้วย Public URL จาก Cloud)
+          uploadAttachmentToStorage(file, file.name || `photo_${Date.now()}.jpg`).then((cloudUrl) => {
+            if (cloudUrl) {
+              setAttachments((prev) =>
+                prev.map((a) => (a.id === newAttId ? { ...a, file_url: cloudUrl } : a))
+              );
+            }
+          });
         }
       };
       reader.readAsDataURL(file);

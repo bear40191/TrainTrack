@@ -17,18 +17,19 @@ import { ProfileModal } from '@/components/profile/ProfileModal';
 import { LoginPage } from '@/components/auth/LoginPage';
 
 export default function HomePage() {
-  const { currentUser, workLogs, isAuthenticated, logout, restoreSession } = useAppStore();
+  const { currentUser, workLogs, isAuthenticated, logout, restoreSession, syncFromSupabase } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
 
-  // กู้คืนเซสชันเมื่อเปิดแอปหรือรีเฟรชหน้า (จดจำเซสชัน 72 ชั่วโมง)
+  // กู้คืนเซสชันเมื่อเปิดแอปหรือรีเฟรชหน้า (จดจำเซสชัน 72 ชั่วโมง) และดึงข้อมูลจริงจากฐานข้อมูล Supabase
   useEffect(() => {
     restoreSession();
     setIsSessionLoaded(true);
-  }, [restoreSession]);
+    void syncFromSupabase();
+  }, [restoreSession, syncFromSupabase]);
 
   const isTrainee = currentUser?.role === 'trainee';
   const isMentor = currentUser?.role === 'mentor';

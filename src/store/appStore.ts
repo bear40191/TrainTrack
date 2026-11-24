@@ -5,6 +5,17 @@ import { verifyPassword, hashPassword, validatePasswordPolicy } from '@/lib/pass
 import {
   notifyMentorPendingReview,
 } from '@/services/emailNotification';
+import {
+  fetchWorkLogsFromDb,
+  fetchProfilesFromDb,
+  fetchCategoriesFromDb,
+  dbCreateWorkLog,
+  dbUpdateWorkLog,
+  dbDeleteWorkLog,
+  dbAddApprovalAction,
+  dbAddComment,
+  dbUpsertProfile,
+} from '@/services/db';
 
 
 
@@ -283,6 +294,9 @@ interface AppState {
   leadReject: (id: string, note: string) => void;
   addComment: (logId: string, content: string) => void;
   markNotificationAsRead: (id: string) => void;
+  // Database Sync
+  isDbConnected: boolean;
+  syncFromSupabase: () => Promise<void>;
 }
 
 // ค่าคงที่สำหรับระบบจดจำการล็อกอิน 72 ชั่วโมง (Session Persistence)
@@ -305,6 +319,52 @@ const saveSessionToStorage = (email: string) => {
 
 export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
+  isDbConnected: false,
+
+  syncFromSupabase: async () => {
+    try {
+      const [dbLogs, dbProfiles, dbCategories] = await Promise.all([
+        fetchWorkLogsFromDb(),
+        fetchProfilesFromDb(),
+        fetchCategoriesFromDb(),
+      ]);
+
+      set((state) => {
+        const nextState: Partial<AppState> = {};
+
+        if (dbProfiles && dbProfiles.length > 0) {
+          nextState.isDbConnected = true;
+          const trainees = dbProfiles.filter((p) => p.role === 'trainee');
+          const mentors = dbProfiles.filter((p) => p.role === 'mentor');
+          const leads = dbProfiles.filter((p) => p.role === 'lead');
+          if (trainees.length > 0) nextState.trainees = trainees;
+          if (mentors.length > 0) nextState.mentors = mentors;
+          if (leads.length > 0) nextState.leads = leads;
+
+          // อัปเดต currentUser หากมีใน Database
+          const currentInDb = dbProfiles.find(
+            (p) => p.id === state.currentUser?.id || p.email.toLowerCase() === state.currentUser?.email.toLowerCase()
+          );
+          if (currentInDb) {
+            nextState.currentUser = currentInDb;
+          }
+        }
+
+        if (dbCategories && dbCategories.length > 0) {
+          nextState.categories = dbCategories;
+        }
+
+        if (dbLogs && dbLogs.length > 0) {
+          nextState.isDbConnected = true;
+          nextState.workLogs = dbLogs;
+        }
+
+        return nextState;
+      });
+    } catch (err) {
+      console.warn('[appStore] syncFromSupabase fallback to local state:', err);
+    }
+  },
   userPasswords: {
     'kittisak.trainee@traintrack.app': '123456',
     'somchai.frontend@traintrack.app': '123456',
@@ -509,6 +569,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         [trimmedEmail]: '123456',
       },
     }));
+    void dbUpsertProfile(newTrainee);
 
     return { success: true, message: 'เพิ่มนักศึกษาเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
   },
@@ -703,6 +764,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...state.notifications
       ] : state.notifications
     }));
+    void dbCreateWorkLog(newLog);
   },
 
   updateWorkLog: (id, updates) => {
@@ -722,16 +784,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         };
       })
     }));
+    void dbUpdateWorkLog(id, updates);
   },
 
   deleteWorkLog: (id) => {
     set((state) => ({
       workLogs: state.workLogs.filter((log) => log.id !== id)
     }));
+    void dbDeleteWorkLog(id);
   },
 
   submitWorkLog: (id) => {
     const user = get().currentUser;
+    let createdAction: ApprovalAction | null = null;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
@@ -753,6 +818,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString(),
         actor: user
       };
+      createdAction = newAction;
 
       const newNotif: AppNotification = {
         id: 'notif-' + Date.now(),
@@ -779,10 +845,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [newNotif, ...state.notifications]
       };
     });
+    void dbUpdateWorkLog(id, { status: 'pending_mentor', submitted_at: new Date().toISOString() });
+    if (createdAction) void dbAddApprovalAction(createdAction);
   },
 
   mentorApprove: (id, note) => {
     const user = get().currentUser;
+    let createdAction: ApprovalAction | null = null;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
@@ -798,6 +867,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString(),
         actor: user
       };
+      createdAction = action;
 
       const notifyLead: AppNotification = {
         id: 'notif-lead-' + Date.now(),
@@ -809,8 +879,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: new Date().toISOString()
       };
-
-      // ข้อ 2: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
       const notifyTrainee: AppNotification = {
         id: 'notif-trainee-' + Date.now(),
@@ -836,10 +904,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [notifyLead, notifyTrainee, ...state.notifications]
       };
     });
+    void dbUpdateWorkLog(id, { status: 'pending_lead' });
+    if (createdAction) void dbAddApprovalAction(createdAction);
   },
 
   mentorApproveAll: (ids) => {
     const user = get().currentUser;
+    const actionsToPersist: ApprovalAction[] = [];
     set((state) => {
       const targets = state.workLogs.filter((l) => {
         if (ids && ids.length > 0) {
@@ -867,6 +938,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             created_at: now,
             actor: user,
           };
+          actionsToPersist.push(action);
 
           newNotifications.push({
             id: 'notif-trainee-' + Math.random().toString(36).substring(2, 9),
@@ -878,8 +950,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             is_read: false,
             created_at: now,
           });
-
-          // ข้อ 2: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
           return {
             ...log,
@@ -895,14 +965,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [...newNotifications, ...state.notifications],
       };
     });
+    actionsToPersist.forEach((act) => {
+      void dbUpdateWorkLog(act.work_log_id, { status: 'pending_lead' });
+      void dbAddApprovalAction(act);
+    });
   },
 
   mentorReject: (id, note) => {
     const user = get().currentUser;
+    let createdAction: ApprovalAction | null = null;
+    let newRevisionCount = 1;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
 
+      newRevisionCount = (target.revision_count || 0) + 1;
       const action: ApprovalAction = {
         id: 'act-' + Date.now(),
         work_log_id: id,
@@ -914,8 +991,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString(),
         actor: user
       };
-
-      // ข้อ 4: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
+      createdAction = action;
 
       const notifyTrainee: AppNotification = {
         id: 'notif-reject-' + Date.now(),
@@ -934,7 +1010,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? {
               ...log,
               status: 'revision_required',
-              revision_count: (log.revision_count || 0) + 1,
+              revision_count: newRevisionCount,
               approval_actions: [...(log.approval_actions || []), action]
             }
             : log
@@ -942,10 +1018,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [notifyTrainee, ...state.notifications]
       };
     });
+    void dbUpdateWorkLog(id, { status: 'revision_required', revision_count: newRevisionCount });
+    if (createdAction) void dbAddApprovalAction(createdAction);
   },
 
   leadApprove: (id, note) => {
     const user = get().currentUser;
+    let createdAction: ApprovalAction | null = null;
+    const approvedAt = new Date().toISOString();
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
@@ -958,11 +1038,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         from_status: 'pending_lead',
         to_status: 'approved',
         note: note || 'อนุมัติเรียบร้อย',
-        created_at: new Date().toISOString(),
+        created_at: approvedAt,
         actor: user
       };
-
-      // ข้อ 3: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
+      createdAction = action;
 
       const notifyTrainee: AppNotification = {
         id: 'notif-approved-' + Date.now(),
@@ -972,7 +1051,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         type: 'approval',
         reference_id: id,
         is_read: false,
-        created_at: new Date().toISOString()
+        created_at: approvedAt
       };
 
       return {
@@ -981,7 +1060,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? {
               ...log,
               status: 'approved',
-              approved_at: new Date().toISOString(),
+              approved_at: approvedAt,
               approval_actions: [...(log.approval_actions || []), action]
             }
             : log
@@ -989,10 +1068,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [notifyTrainee, ...state.notifications]
       };
     });
+    void dbUpdateWorkLog(id, { status: 'approved', approved_at: approvedAt });
+    if (createdAction) void dbAddApprovalAction(createdAction);
   },
 
   leadApproveAll: (ids) => {
     const user = get().currentUser;
+    const actionsToPersist: ApprovalAction[] = [];
     set((state) => {
       const targets = state.workLogs.filter((l) => {
         if (ids && ids.length > 0) {
@@ -1020,6 +1102,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             created_at: now,
             actor: user,
           };
+          actionsToPersist.push(action);
 
           newNotifications.push({
             id: 'notif-approved-' + Math.random().toString(36).substring(2, 9),
@@ -1031,8 +1114,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             is_read: false,
             created_at: now,
           });
-
-          // ข้อ 3: ตัดการส่งอีเมลออกตามที่ผู้ใช้กำหนด (เปลี่ยนไปใช้ Mobile Notification แทน)
 
           return {
             ...log,
@@ -1049,14 +1130,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [...newNotifications, ...state.notifications],
       };
     });
+    actionsToPersist.forEach((act) => {
+      void dbUpdateWorkLog(act.work_log_id, { status: 'approved', approved_at: act.created_at });
+      void dbAddApprovalAction(act);
+    });
   },
 
   leadReject: (id, note) => {
     const user = get().currentUser;
+    let createdAction: ApprovalAction | null = null;
+    let newRevCount = 1;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
 
+      newRevCount = (target.revision_count || 0) + 1;
       const action: ApprovalAction = {
         id: 'act-' + Date.now(),
         work_log_id: id,
@@ -1068,6 +1156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         created_at: new Date().toISOString(),
         actor: user
       };
+      createdAction = action;
 
       const notifyTrainee: AppNotification = {
         id: 'notif-lead-reject-' + Date.now(),
@@ -1086,7 +1175,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? {
               ...log,
               status: 'revision_required',
-              revision_count: (log.revision_count || 0) + 1,
+              revision_count: newRevCount,
               approval_actions: [...(log.approval_actions || []), action]
             }
             : log
@@ -1094,6 +1183,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: [notifyTrainee, ...state.notifications]
       };
     });
+    void dbUpdateWorkLog(id, { status: 'revision_required', revision_count: newRevCount });
+    if (createdAction) void dbAddApprovalAction(createdAction);
   },
 
   addComment: (logId, content) => {
@@ -1115,6 +1206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           : log
       )
     }));
+    void dbAddComment(comment);
   },
 
   markNotificationAsRead: (id) => {
