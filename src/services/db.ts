@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { WorkLog, Profile, Comment as AppComment, ApprovalAction } from '@/lib/types';
+import { WorkLog, Profile, Comment as AppComment, ApprovalAction, Attachment, AppNotification } from '@/lib/types';
 
 /**
  * ตรวจสอบว่า Supabase ได้รับการตั้งค่า Key จริงและพร้อมเรียกใช้งานหรือไม่
@@ -442,5 +442,168 @@ export async function uploadAttachmentToStorage(
   } catch (err) {
     console.warn('[Supabase Storage] Exception uploading file:', err);
     return null;
+  }
+}
+
+/**
+ * เพิ่มหมวดหมู่งานใหม่ลงตาราง categories
+ */
+export async function dbAddCategory(name: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .upsert([{ name: name.trim() }], { onConflict: 'name' });
+    if (error) {
+      console.warn('[Supabase] dbAddCategory error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbAddCategory:', err);
+    return false;
+  }
+}
+
+/**
+ * ลบหมวดหมู่งานออกจากตาราง categories
+ */
+export async function dbRemoveCategory(name: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+    if (error) {
+      console.warn('[Supabase] dbRemoveCategory error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbRemoveCategory:', err);
+    return false;
+  }
+}
+
+/**
+ * ซิงค์ไฟล์แนบของ Work Log เมื่อมีการแก้ไขรายการงาน
+ */
+export async function dbSyncWorkLogAttachments(
+  workLogId: string,
+  attachments: Attachment[]
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    // ลบไฟล์แนบเดิมของ work_log_id นี้ก่อน แล้วบันทึกชุดล่าสุดแทน
+    const { error: delError } = await supabase
+      .from('attachments')
+      .delete()
+      .eq('work_log_id', workLogId);
+
+    if (delError) {
+      console.warn('[Supabase] dbSyncWorkLogAttachments delete error:', delError);
+      return false;
+    }
+
+    if (attachments.length > 0) {
+      const payloads = attachments.map((att) => ({
+        id: att.id,
+        work_log_id: workLogId,
+        file_name: att.file_name,
+        file_url: att.file_url,
+        file_type: att.file_type,
+        file_size: att.file_size,
+        created_at: att.created_at || new Date().toISOString(),
+      }));
+      const { error: insError } = await supabase.from('attachments').insert(payloads);
+      if (insError) {
+        console.warn('[Supabase] dbSyncWorkLogAttachments insert error:', insError);
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbSyncWorkLogAttachments:', err);
+    return false;
+  }
+}
+
+/**
+ * ดึงการแจ้งเตือนทั้งหมดจากตาราง notifications
+ */
+export async function fetchNotificationsFromDb(): Promise<AppNotification[] | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.warn('[Supabase] fetchNotifications error:', error.message);
+      return null;
+    }
+    return (data as AppNotification[]) || [];
+  } catch (err) {
+    console.warn('[Supabase] Exception in fetchNotifications:', err);
+    return null;
+  }
+}
+
+/**
+ * บันทึกการแจ้งเตือนใหม่ลงตาราง notifications
+ */
+export async function dbCreateNotification(notif: AppNotification): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase.from('notifications').insert([{
+      id: notif.id,
+      user_id: notif.user_id,
+      title: notif.title,
+      body: notif.body,
+      type: notif.type,
+      reference_id: notif.reference_id,
+      is_read: notif.is_read,
+      created_at: notif.created_at || new Date().toISOString(),
+    }]);
+
+    if (error) {
+      console.warn('[Supabase] dbCreateNotification error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbCreateNotification:', err);
+    return false;
+  }
+}
+
+/**
+ * อัปเดตสถานะว่าอ่านแจ้งเตือนแล้วใน Supabase
+ */
+export async function dbMarkNotificationAsRead(id: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id);
+
+    if (error) {
+      console.warn('[Supabase] dbMarkNotificationAsRead error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbMarkNotificationAsRead:', err);
+    return false;
   }
 }

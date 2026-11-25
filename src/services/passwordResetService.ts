@@ -21,6 +21,8 @@ import {
   sendPasswordChangedNotificationEmail,
 } from '@/services/emailService';
 import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
+import { supabase } from '@/services/supabase';
+import { isSupabaseConfigured, dbUpdateProfilePassword } from '@/services/db';
 
 export interface PasswordResetTokenRecord {
   id: string;
@@ -82,9 +84,25 @@ export async function requestPasswordReset(
     ...ALL_DEMO_USERS,
   ];
 
-  const targetUser = allUsers.find(
+  let targetUser: { id: string; email: string } | undefined = allUsers.find(
     (u) => u.email.trim().toLowerCase() === normalizedEmail
   );
+
+  // หากไม่พบใน Store ในเครื่อง ให้ค้นหาจากตาราง profiles ใน Supabase จริง
+  if (!targetUser && isSupabaseConfigured()) {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .ilike('email', normalizedEmail)
+        .maybeSingle();
+      if (data) {
+        targetUser = data as { id: string; email: string };
+      }
+    } catch {
+      // Fallback gracefully
+    }
+  }
 
   // หากไม่มีอีเมลนี้ในระบบ ให้ตอบข้อความเดิมเสมอ (ป้องกัน User Enumeration ตาม Spec ข้อ 5)
   if (!targetUser) {
@@ -100,11 +118,12 @@ export async function requestPasswordReset(
   const tokenHash = hashResetToken(rawToken);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 30 * 60 * 1000); // หมดอายุใน 30 นาที
+  const tokenId = `prt-${Math.random().toString(36).substring(2, 10)}`;
 
   // ยกเลิกโทเค็นเก่าที่ยังไม่ถูกใช้ของบัญชีนี้ทั้งหมด (ตาม Spec ข้อ 3)
   resetTokenStore.forEach((record) => {
     if (
-      record.user_id === targetUser.id &&
+      record.user_id === targetUser!.id &&
       record.used_at === null
     ) {
       record.used_at = now.toISOString();
@@ -113,7 +132,7 @@ export async function requestPasswordReset(
 
   // บันทึกเฉพาะ Token Hash ลง Store (ห้ามบันทึก rawToken เด็ดขาด)
   resetTokenStore.push({
-    id: `prt-${Math.random().toString(36).substring(2, 10)}`,
+    id: tokenId,
     user_id: targetUser.id,
     email: targetUser.email,
     token_hash: tokenHash,
@@ -121,6 +140,28 @@ export async function requestPasswordReset(
     used_at: null,
     created_at: now.toISOString(),
   });
+
+  // ซิงค์ไปยังตาราง password_reset_tokens บน Supabase จริง
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase
+        .from('password_reset_tokens')
+        .update({ used_at: now.toISOString() })
+        .eq('user_id', targetUser.id)
+        .is('used_at', null);
+
+      await supabase.from('password_reset_tokens').insert([{
+        id: tokenId,
+        user_id: targetUser.id,
+        token_hash: tokenHash,
+        expires_at: expiresAt.toISOString(),
+        used_at: null,
+        created_at: now.toISOString(),
+      }]);
+    } catch {
+      // Fallback to in-memory store
+    }
+  }
 
   // สร้างลิงก์จาก Config โดเมนเท่านั้น (ห้ามใช้ Host Header)
   const resetLink = `${getAppBaseUrl()}/reset-password?token=${rawToken}`;
@@ -163,12 +204,45 @@ export async function resetPasswordWithToken(
   const now = new Date();
 
   // ค้นหารายการโทเค็นที่ตรงกัน และยังไม่ถูกใช้ และยังไม่หมดอายุ
-  const tokenRecord = resetTokenStore.find((record) => {
+  let tokenRecord: PasswordResetTokenRecord | undefined = resetTokenStore.find((record) => {
     const isMatch = verifyTokenHash(record.token_hash, incomingHash);
     const isUnused = record.used_at === null;
     const isNotExpired = new Date(record.expires_at).getTime() > now.getTime();
     return isMatch && isUnused && isNotExpired;
   });
+
+  // หากไม่พบในหน่วยความจำ (เช่น รันบน Serverless) ให้ค้นหาจาก Supabase
+  if (!tokenRecord && isSupabaseConfigured()) {
+    try {
+      const { data } = await supabase
+        .from('password_reset_tokens')
+        .select('id, user_id, token_hash, expires_at, used_at, created_at, profiles(email)')
+        .eq('token_hash', incomingHash)
+        .is('used_at', null)
+        .maybeSingle();
+
+      if (data) {
+        const joinedProfile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+        const emailFromDb = (joinedProfile as { email?: string } | null)?.email;
+        const isMatch = verifyTokenHash(data.token_hash, incomingHash);
+        const isNotExpired = new Date(data.expires_at).getTime() > now.getTime();
+
+        if (isMatch && isNotExpired && emailFromDb) {
+          tokenRecord = {
+            id: data.id,
+            user_id: data.user_id,
+            email: emailFromDb,
+            token_hash: data.token_hash,
+            expires_at: data.expires_at,
+            used_at: data.used_at,
+            created_at: data.created_at,
+          };
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
 
   if (!tokenRecord) {
     // โทเค็นไม่ถูกต้อง หมดอายุ หรือถูกใช้ไปแล้ว ให้แสดงข้อความเดียวกันเสมอ (ตาม Spec ข้อ 6)
@@ -190,13 +264,24 @@ export async function resetPasswordWithToken(
 
   // 1. ทำเครื่องหมายโทเค็นว่าถูกใช้งานแล้ว (ป้องกันการใช้ซ้ำ)
   tokenRecord.used_at = now.toISOString();
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase
+        .from('password_reset_tokens')
+        .update({ used_at: now.toISOString() })
+        .eq('id', tokenRecord.id);
+    } catch {
+      // Ignore
+    }
+  }
 
   // 2. Hash รหัสผ่านใหม่ด้วย PBKDF2
   const hashedPassword = hashPassword(newPassword);
 
-  // 3. อัปเดตรหัสผ่านใน Store
+  // 3. อัปเดตรหัสผ่านใน Store และ Supabase
   const store = useAppStore.getState();
   store.updateUserPassword(tokenRecord.email, hashedPassword);
+  await dbUpdateProfilePassword(tokenRecord.email, hashedPassword);
 
   // 4. ล็อกเอาต์ทุกอุปกรณ์ (Revoke sessions)
   store.logout();

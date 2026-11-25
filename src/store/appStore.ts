@@ -18,7 +18,19 @@ import {
   dbUpdateProfile,
   dbDeleteProfile,
   dbUpdateProfilePassword,
+  dbAddCategory,
+  dbRemoveCategory,
+  dbSyncWorkLogAttachments,
+  fetchNotificationsFromDb,
+  dbCreateNotification,
+  dbMarkNotificationAsRead,
 } from '@/services/db';
+
+const persistNotifications = (notifs: AppNotification[]) => {
+  notifs.forEach((n) => {
+    void dbCreateNotification(n);
+  });
+};
 
 
 
@@ -326,10 +338,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   syncFromSupabase: async () => {
     try {
-      const [dbLogs, dbProfiles, dbCategories] = await Promise.all([
+      const [dbLogs, dbProfiles, dbCategories, dbNotifications] = await Promise.all([
         fetchWorkLogsFromDb(),
         fetchProfilesFromDb(),
         fetchCategoriesFromDb(),
+        fetchNotificationsFromDb(),
       ]);
 
       set((state) => {
@@ -369,6 +382,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (dbLogs && dbLogs.length > 0) {
           nextState.isDbConnected = true;
           nextState.workLogs = dbLogs;
+        }
+
+        if (dbNotifications && dbNotifications.length > 0) {
+          nextState.notifications = dbNotifications;
         }
 
         return nextState;
@@ -749,21 +766,24 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (state.categories.includes(trimmed)) return state;
       return { categories: [...state.categories, trimmed] };
     });
+    void dbAddCategory(trimmed);
   },
 
   removeCategory: (name: string) => {
     set((state) => ({
       categories: state.categories.filter((c) => c !== name)
     }));
+    void dbRemoveCategory(name);
   },
 
   createWorkLog: (logData) => {
     const user = get().currentUser;
     const assignedMentor = get().mentors.find(m => m.id === logData.assigned_mentor_id) || get().mentors[0];
+    const logId = 'log-' + Date.now();
 
     const newLog: WorkLog = {
       ...logData,
-      id: 'log-' + Date.now(),
+      id: logId,
       trainee_id: user.id,
       revision_count: 0,
       created_at: new Date().toISOString(),
@@ -775,7 +795,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       approval_actions: [
         {
           id: 'action-' + Date.now(),
-          work_log_id: 'log-' + Date.now(),
+          work_log_id: logId,
           actor_id: user.id,
           action: 'submit',
           from_status: 'draft',
@@ -787,6 +807,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       ]
     };
 
+    const newNotif: AppNotification | null =
+      logData.status === 'pending_mentor'
+        ? {
+            id: 'notif-' + Date.now(),
+            user_id: assignedMentor.id,
+            title: 'มีงานใหม่มอบหมายถึงคุณ',
+            body: `${user.full_name} ได้ส่งบันทึกงาน: "${newLog.title}" เพื่อให้คุณตรวจสอบ`,
+            type: 'approval',
+            reference_id: newLog.id,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }
+        : null;
 
     // ส่ง email แจ้งพี่เลี้ยง (fire-and-forget — ไม่ block UI)
     if (logData.status === 'pending_mentor') {
@@ -794,21 +827,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     set((state) => ({
       workLogs: [newLog, ...state.workLogs],
-      notifications: logData.status === 'pending_mentor' ? [
-        {
-          id: 'notif-' + Date.now(),
-          user_id: assignedMentor.id,
-          title: 'มีงานใหม่มอบหมายถึงคุณ',
-          body: `${user.full_name} ได้ส่งบันทึกงาน: "${newLog.title}" เพื่อให้คุณตรวจสอบ`,
-          type: 'approval',
-          reference_id: newLog.id,
-          is_read: false,
-          created_at: new Date().toISOString()
-        },
-        ...state.notifications
-      ] : state.notifications
+      notifications: newNotif ? [newNotif, ...state.notifications] : state.notifications,
     }));
     void dbCreateWorkLog(newLog);
+    if (newNotif) persistNotifications([newNotif]);
   },
 
   updateWorkLog: (id, updates) => {
@@ -829,6 +851,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
     }));
     void dbUpdateWorkLog(id, updates);
+    if (updates.attachments !== undefined) {
+      void dbSyncWorkLogAttachments(id, updates.attachments);
+    }
   },
 
   deleteWorkLog: (id) => {
@@ -841,6 +866,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   submitWorkLog: (id) => {
     const user = get().currentUser;
     let createdAction: ApprovalAction | null = null;
+    let createdNotif: AppNotification | null = null;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
@@ -874,6 +900,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: new Date().toISOString()
       };
+      createdNotif = newNotif;
 
       return {
         workLogs: state.workLogs.map((log) =>
@@ -891,11 +918,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     void dbUpdateWorkLog(id, { status: 'pending_mentor', submitted_at: new Date().toISOString() });
     if (createdAction) void dbAddApprovalAction(createdAction);
+    if (createdNotif) persistNotifications([createdNotif]);
   },
 
   mentorApprove: (id, note) => {
     const user = get().currentUser;
     let createdAction: ApprovalAction | null = null;
+    const createdNotifs: AppNotification[] = [];
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
       if (!target) return state;
@@ -934,6 +963,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: new Date().toISOString()
       };
+      createdNotifs.push(notifyLead, notifyTrainee);
 
       return {
         workLogs: state.workLogs.map((log) =>
@@ -950,11 +980,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     void dbUpdateWorkLog(id, { status: 'pending_lead' });
     if (createdAction) void dbAddApprovalAction(createdAction);
+    if (createdNotifs.length > 0) persistNotifications(createdNotifs);
   },
 
   mentorApproveAll: (ids) => {
     const user = get().currentUser;
     const actionsToPersist: ApprovalAction[] = [];
+    const notifsToPersist: AppNotification[] = [];
     set((state) => {
       const targets = state.workLogs.filter((l) => {
         if (ids && ids.length > 0) {
@@ -984,7 +1016,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           };
           actionsToPersist.push(action);
 
-          newNotifications.push({
+          const notif: AppNotification = {
             id: 'notif-trainee-' + Math.random().toString(36).substring(2, 9),
             user_id: log.trainee_id,
             title: 'พี่เลี้ยงตรวจงานเรียบร้อยแล้ว',
@@ -993,7 +1025,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             reference_id: log.id,
             is_read: false,
             created_at: now,
-          });
+          };
+          newNotifications.push(notif);
+          notifsToPersist.push(notif);
 
           return {
             ...log,
@@ -1013,11 +1047,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       void dbUpdateWorkLog(act.work_log_id, { status: 'pending_lead' });
       void dbAddApprovalAction(act);
     });
+    if (notifsToPersist.length > 0) persistNotifications(notifsToPersist);
   },
 
   mentorReject: (id, note) => {
     const user = get().currentUser;
     let createdAction: ApprovalAction | null = null;
+    let createdNotif: AppNotification | null = null;
     let newRevisionCount = 1;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
@@ -1047,6 +1083,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: new Date().toISOString()
       };
+      createdNotif = notifyTrainee;
 
       return {
         workLogs: state.workLogs.map((log) =>
@@ -1064,11 +1101,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     void dbUpdateWorkLog(id, { status: 'revision_required', revision_count: newRevisionCount });
     if (createdAction) void dbAddApprovalAction(createdAction);
+    if (createdNotif) persistNotifications([createdNotif]);
   },
 
   leadApprove: (id, note) => {
     const user = get().currentUser;
     let createdAction: ApprovalAction | null = null;
+    let createdNotif: AppNotification | null = null;
     const approvedAt = new Date().toISOString();
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
@@ -1097,6 +1136,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: approvedAt
       };
+      createdNotif = notifyTrainee;
 
       return {
         workLogs: state.workLogs.map((log) =>
@@ -1114,11 +1154,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     void dbUpdateWorkLog(id, { status: 'approved', approved_at: approvedAt });
     if (createdAction) void dbAddApprovalAction(createdAction);
+    if (createdNotif) persistNotifications([createdNotif]);
   },
 
   leadApproveAll: (ids) => {
     const user = get().currentUser;
     const actionsToPersist: ApprovalAction[] = [];
+    const notifsToPersist: AppNotification[] = [];
     set((state) => {
       const targets = state.workLogs.filter((l) => {
         if (ids && ids.length > 0) {
@@ -1148,7 +1190,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           };
           actionsToPersist.push(action);
 
-          newNotifications.push({
+          const notif: AppNotification = {
             id: 'notif-approved-' + Math.random().toString(36).substring(2, 9),
             user_id: log.trainee_id,
             title: 'งานได้รับการอนุมัติสำเร็จ',
@@ -1157,7 +1199,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             reference_id: log.id,
             is_read: false,
             created_at: now,
-          });
+          };
+          newNotifications.push(notif);
+          notifsToPersist.push(notif);
 
           return {
             ...log,
@@ -1178,11 +1222,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       void dbUpdateWorkLog(act.work_log_id, { status: 'approved', approved_at: act.created_at });
       void dbAddApprovalAction(act);
     });
+    if (notifsToPersist.length > 0) persistNotifications(notifsToPersist);
   },
 
   leadReject: (id, note) => {
     const user = get().currentUser;
     let createdAction: ApprovalAction | null = null;
+    let createdNotif: AppNotification | null = null;
     let newRevCount = 1;
     set((state) => {
       const target = state.workLogs.find((l) => l.id === id);
@@ -1212,6 +1258,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         is_read: false,
         created_at: new Date().toISOString()
       };
+      createdNotif = notifyTrainee;
 
       return {
         workLogs: state.workLogs.map((log) =>
@@ -1229,6 +1276,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     void dbUpdateWorkLog(id, { status: 'revision_required', revision_count: newRevCount });
     if (createdAction) void dbAddApprovalAction(createdAction);
+    if (createdNotif) persistNotifications([createdNotif]);
   },
 
   addComment: (logId, content) => {
@@ -1259,5 +1307,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         n.id === id ? { ...n, is_read: true } : n
       )
     }));
+    void dbMarkNotificationAsRead(id);
   }
 }));
