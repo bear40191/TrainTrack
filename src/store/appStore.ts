@@ -265,6 +265,7 @@ const INITIAL_LOGS: WorkLog[] = [
 
 interface AppState {
   currentUser: Profile;
+  admins: Profile[];
   mentors: Profile[];
   leads: Profile[];
   trainees: Profile[];
@@ -318,6 +319,10 @@ interface AppState {
 const SESSION_MAX_AGE_MS = 72 * 60 * 60 * 1000; // 72 ชั่วโมง
 const SESSION_KEY = 'traintrack_session_v1';
 
+const getAllUsers = (
+  state: Pick<AppState, 'trainees' | 'mentors' | 'leads' | 'admins'>
+): Profile[] => [...state.trainees, ...state.mentors, ...state.leads, ...state.admins];
+
 const saveSessionToStorage = (email: string) => {
   if (typeof window !== 'undefined') {
     try {
@@ -353,9 +358,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           const trainees = dbProfiles.filter((p) => p.role === 'trainee');
           const mentors = dbProfiles.filter((p) => p.role === 'mentor');
           const leads = dbProfiles.filter((p) => p.role === 'lead');
+          const admins = dbProfiles.filter((p) => p.role === 'admin');
           if (trainees.length > 0) nextState.trainees = trainees;
           if (mentors.length > 0) nextState.mentors = mentors;
           if (leads.length > 0) nextState.leads = leads;
+          if (admins.length > 0) nextState.admins = admins;
 
           // ซิงค์ password_hash จากฐานข้อมูลเข้าสู่ userPasswords
           const syncedPasswords: Record<string, string> = { ...state.userPasswords };
@@ -390,6 +397,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         return nextState;
       });
+
+      // กรณีกู้คืนเซสชันของ user ที่เพิ่งสร้างใหม่ใน DB (ยังไม่เจอตอน initial mock state)
+      if (!get().isAuthenticated) {
+        get().restoreSession();
+      }
     } catch (err) {
       console.warn('[appStore] syncFromSupabase fallback to local state:', err);
     }
@@ -415,7 +427,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   changePassword: (email: string, newPassword: string) => {
     const trimmed = email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    const allUsers = getAllUsers(get());
     const userExists = allUsers.some((u) => u.email.toLowerCase() === trimmed);
     if (!userExists) {
       return { success: false, message: 'ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบ' };
@@ -444,6 +456,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       leads: state.leads.map((u) =>
         u.email.toLowerCase() === trimmed ? { ...u, password_hash: hashed, must_change_password: false } : u
       ),
+      admins: state.admins.map((u) =>
+        u.email.toLowerCase() === trimmed ? { ...u, password_hash: hashed, must_change_password: false } : u
+      ),
     }));
     void dbUpdateProfilePassword(trimmed, hashed);
 
@@ -455,7 +470,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   login: (email: string, password?: string) => {
     const trimmed = email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    const allUsers = getAllUsers(get());
     const found = allUsers.find(
       (u) => u.email.toLowerCase() === trimmed
     );
@@ -500,8 +515,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       return true;
     }
     if (trimmed.includes('admin') || trimmed.includes('ผู้ดูแล')) {
-      set({ currentUser: MOCK_USERS.admin, isAuthenticated: true });
-      saveSessionToStorage(MOCK_USERS.admin.email);
+      const admin = get().admins[0] || MOCK_USERS.admin;
+      set({ currentUser: admin, isAuthenticated: true });
+      saveSessionToStorage(admin.email);
       return true;
     }
     return false;
@@ -534,7 +550,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
       // ยังไม่เกิน 72 ชั่วโมง ดึงข้อมูลผู้ใช้เพื่อล็อกอินต่ออัตโนมัติ
-      const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+      const allUsers = getAllUsers(get());
       const found = allUsers.find(
         (u) => u.email.toLowerCase() === parsed.email.toLowerCase()
       );
@@ -546,6 +562,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   currentUser: MOCK_USERS.trainee,
+  admins: [MOCK_USERS.admin],
   mentors: MOCK_MENTORS,
   leads: INITIAL_LEADS,
   trainees: INITIAL_TRAINEES,
@@ -575,7 +592,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const firstTrainee = get().trainees[0] || MOCK_USERS.trainee;
       set({ currentUser: firstTrainee });
     } else {
-      set({ currentUser: MOCK_USERS[role] });
+      const target = role === 'admin' ? (get().admins[0] || MOCK_USERS.admin) : MOCK_USERS[role];
+      set({ currentUser: target });
     }
   },
 
@@ -588,7 +606,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addTrainee: (data) => {
     const trimmedEmail = data.email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    const allUsers = getAllUsers(get());
     if (allUsers.some(u => u.email.toLowerCase() === trimmedEmail)) {
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
@@ -643,7 +661,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addMentor: (data) => {
     const trimmedEmail = data.email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    const allUsers = getAllUsers(get());
     if (allUsers.some((u) => u.email.toLowerCase() === trimmedEmail)) {
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
@@ -703,7 +721,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addLead: (data) => {
     const trimmedEmail = data.email.trim().toLowerCase();
-    const allUsers = [...get().trainees, ...get().mentors, ...get().leads, MOCK_USERS.admin];
+    const allUsers = getAllUsers(get());
     if (allUsers.some((u) => u.email.toLowerCase() === trimmedEmail)) {
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }

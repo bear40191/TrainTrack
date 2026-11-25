@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { sendEmail } from '@/services/emailService';
 import {
   sanitizeHtml,
   sanitizeText,
@@ -7,9 +7,6 @@ import {
   isAllowedNotificationType,
   AllowedNotificationType
 } from '@/lib/security';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.EMAIL_FROM || 'TrainTrack <onboarding@resend.dev>';
 
 // ประเภทของ Notification ที่ส่งได้
 export type NotificationType = AllowedNotificationType;
@@ -168,19 +165,10 @@ function buildEmailContent(data: SendNotificationRequest): {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. ตรวจสอบ API Key
-    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx') {
-      console.warn('[TrainTrack] RESEND_API_KEY ยังไม่ได้ตั้งค่า — ข้ามการส่ง email');
-      return NextResponse.json(
-        { success: false, message: 'Email service not configured — set RESEND_API_KEY in .env.local' },
-        { status: 503 }
-      );
-    }
-
-    // 2. Parse และตรวจสอบ Request Body
+    // 1. Parse และตรวจสอบ Request Body
     const body: SendNotificationRequest = await request.json();
 
-    // 3. ตรวจสอบ required fields
+    // 2. ตรวจสอบ required fields
     if (!body.toEmail || !body.type || !body.workLogTitle) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields: toEmail, type, workLogTitle' },
@@ -188,7 +176,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Validate Email format and block CRLF injection
+    // 3. Validate Email format and block CRLF injection
     if (!isValidEmail(body.toEmail)) {
       return NextResponse.json(
         { success: false, message: 'Invalid recipient email format' },
@@ -196,7 +184,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Validate Notification Type against strict whitelist
+    // 4. Validate Notification Type against strict whitelist
     if (!isAllowedNotificationType(body.type)) {
       return NextResponse.json(
         { success: false, message: 'Invalid notification type' },
@@ -204,26 +192,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Build sanitized email content
+    // 5. Build sanitized email content และส่งผ่าน EmailService (รองรับ Gmail SMTP + Resend)
     const { subject, html } = buildEmailContent(body);
+    const result = await sendEmail(body.toEmail, subject, html);
 
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [body.toEmail],
-      subject,
-      html,
-    });
-
-    if (result.error) {
-      console.error('[TrainTrack] Resend error:', result.error);
+    if (!result.success) {
+      console.error('[TrainTrack] Email send error:', result.error);
       return NextResponse.json(
-        { success: false, message: result.error.message },
+        { success: false, message: result.error || 'Failed to send email' },
         { status: 500 }
       );
     }
 
-    console.log(`[TrainTrack] Email sent to ${body.toEmail} (${body.type}) ID: ${result.data?.id}`);
-    return NextResponse.json({ success: true, id: result.data?.id });
+    console.log(`[TrainTrack] Email sent to ${body.toEmail} (${body.type}) ID: ${result.messageId}`);
+    return NextResponse.json({ success: true, id: result.messageId });
 
   } catch (error) {
     console.error('[TrainTrack] Send notification error:', error);

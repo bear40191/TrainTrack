@@ -44,7 +44,7 @@ function createGmailTransporter() {
  * ส่งอีเมลผ่าน Provider ที่ตั้งค่าไว้ (Gmail SMTP → Resend → Mock)
  * ลำดับ priority: Gmail > Resend > Mock (dev mode)
  */
-async function sendEmail(
+export async function sendEmail(
   to: string,
   subject: string,
   html: string

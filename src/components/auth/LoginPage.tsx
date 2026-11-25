@@ -66,7 +66,7 @@ const ROLE_DEMO_ACCOUNTS: RoleDemoAccount[] = [
 ];
 
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
-  const { login } = useAppStore();
+  const { login, syncFromSupabase, isDbConnected } = useAppStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -90,7 +90,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
     setSuccessMsg(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -101,15 +101,17 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const ok = login(email, password);
-      setIsLoading(false);
-      if (ok) {
-        if (onLoginSuccess) onLoginSuccess();
-      } else {
-        setErrorMsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากลืมรหัสผ่าน สามารถคลิก "ลืมรหัสผ่าน?" ด้านล่างเพื่อตั้งรหัสใหม่ได้)');
-      }
-    }, 350);
+    // ซิงค์ข้อมูลล่าสุดจาก Supabase ก่อนตรวจสอบ (กรณีเพิ่งเปิดหน้าเว็บหรือเพิ่งแก้ข้อมูลใน DB)
+    if (!isDbConnected) {
+      await syncFromSupabase();
+    }
+    const ok = login(email, password);
+    setIsLoading(false);
+    if (ok) {
+      if (onLoginSuccess) onLoginSuccess();
+    } else {
+      setErrorMsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากลืมรหัสผ่าน สามารถคลิก "ลืมรหัสผ่าน?" ด้านล่างเพื่อตั้งรหัสใหม่ได้)');
+    }
   };
 
   const handleOpenForgotPassword = () => {
