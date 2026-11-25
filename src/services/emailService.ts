@@ -1,17 +1,77 @@
 /**
  * TrainTrack Email Service
  * โมดูลส่งอีเมลระบบลืมรหัสผ่านและการแจ้งเตือน (Adapter Pattern)
+ * รองรับ 2 provider: Gmail SMTP (nodemailer) และ Resend API
  * ทำงานแบบ Asynchronous และอ่านโดเมนจากค่า Config เท่านั้น (ห้ามอ่านจาก Host header)
  */
+import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { sanitizeHtml, sanitizeText, isValidEmail } from '@/lib/security';
 
+// --- Gmail SMTP Config ---
+const gmailUser = process.env.GMAIL_USER;
+const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+const isGmailConfigured = Boolean(
+  gmailUser &&
+    gmailAppPassword &&
+    gmailUser !== 'your-email@gmail.com' &&
+    gmailAppPassword !== 'your-16-char-app-password'
+);
+
+// --- Resend Config (fallback) ---
 const resendApiKey = process.env.RESEND_API_KEY;
 const isResendConfigured = Boolean(
   resendApiKey && resendApiKey !== 're_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 );
 const resend = isResendConfigured ? new Resend(resendApiKey) : null;
-const FROM_EMAIL = process.env.EMAIL_FROM || 'TrainTrack <onboarding@resend.dev>';
+
+const FROM_EMAIL =
+  process.env.EMAIL_FROM ||
+  (isGmailConfigured ? `TrainTrack <${gmailUser}>` : 'TrainTrack <onboarding@resend.dev>');
+
+/** สร้าง Gmail SMTP transporter (nodemailer) */
+function createGmailTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailAppPassword, // Gmail App Password (16 ตัวอักษร ไม่ใช่รหัสปกติ)
+    },
+  });
+}
+
+/**
+ * ส่งอีเมลผ่าน Provider ที่ตั้งค่าไว้ (Gmail SMTP → Resend → Mock)
+ * ลำดับ priority: Gmail > Resend > Mock (dev mode)
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  // 1. ใช้ Gmail SMTP ถ้าตั้งค่าไว้
+  if (isGmailConfigured) {
+    const transporter = createGmailTransporter();
+    const info = await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+    return { success: true, messageId: info.messageId };
+  }
+
+  // 2. fallback → Resend API
+  if (resend) {
+    const result = await resend.emails.send({ from: FROM_EMAIL, to: [to], subject, html });
+    if (result.error) return { success: false, error: result.error.message };
+    return { success: true, messageId: result.data?.id };
+  }
+
+  // 3. โหมด Dev/Test: จำลองส่งสำเร็จ
+  console.log(`[EmailService] Dev mode — email to ${to}: ${subject}`);
+  return { success: true, messageId: 'mock-dev-email-id' };
+}
 
 /**
  * ดึง App URL จากค่า Config/Environment เท่านั้น (ป้องกัน Host Header Injection ตาม Spec ข้อ 5)
@@ -81,24 +141,12 @@ export async function sendPasswordResetEmail(
     </html>
   `;
 
-  // ทำงานแบบ Asynchronous / Background (ไม่ขัดขวางการทำงานหากไม่มี API key ในโหมด dev)
-  if (!resend) {
-    // โหมด Dev / Test: จำลองการส่งสำเร็จโดยไม่บันทึก token หรือ log ข้อมูลลับ
-    return { success: true, messageId: 'mock-dev-email-id' };
-  }
-
   try {
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [toEmail],
-      subject: '🔐 คำขอรีเซ็ตรหัสผ่านสำหรับบัญชี TrainTrack',
-      html,
-    });
-
-    if (result.error) {
-      return { success: false, error: result.error.message };
-    }
-    return { success: true, messageId: result.data?.id };
+    return await sendEmail(
+      toEmail,
+      '🔐 คำขอรีเซ็ตรหัสผ่านสำหรับบัญชี TrainTrack',
+      html
+    );
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -143,18 +191,12 @@ export async function sendPasswordChangedNotificationEmail(
     </html>
   `;
 
-  if (!resend) {
-    return { success: true, messageId: 'mock-dev-notify-id' };
-  }
-
   try {
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [toEmail],
-      subject: '🛡️ รหัสผ่านบัญชี TrainTrack ของคุณถูกเปลี่ยนแปลงแล้ว',
-      html,
-    });
-    return { success: !result.error, messageId: result.data?.id };
+    return await sendEmail(
+      toEmail,
+      '🛡️ รหัสผ่านบัญชี TrainTrack ของคุณถูกเปลี่ยนแปลงแล้ว',
+      html
+    );
   } catch (error) {
     return { success: false, error: String(error) };
   }
