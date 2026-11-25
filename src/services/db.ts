@@ -285,7 +285,7 @@ export async function dbUpsertProfile(profile: Profile): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
 
   try {
-    const { error } = await supabase.from('profiles').upsert([{
+    const payload: Record<string, unknown> = {
       id: profile.id,
       full_name: profile.full_name,
       email: profile.email,
@@ -295,7 +295,15 @@ export async function dbUpsertProfile(profile: Profile): Promise<boolean> {
       avatar_url: profile.avatar_url || null,
       position: profile.position || null,
       created_at: profile.created_at || new Date().toISOString()
-    }]);
+    };
+    if (profile.password_hash !== undefined) {
+      payload.password_hash = profile.password_hash;
+    }
+    if (profile.must_change_password !== undefined) {
+      payload.must_change_password = profile.must_change_password;
+    }
+
+    const { error } = await supabase.from('profiles').upsert([payload]);
 
     if (error) {
       console.warn('[Supabase] dbUpsertProfile error:', error);
@@ -304,6 +312,84 @@ export async function dbUpsertProfile(profile: Profile): Promise<boolean> {
     return true;
   } catch (err) {
     console.warn('[Supabase] Exception in dbUpsertProfile:', err);
+    return false;
+  }
+}
+
+/**
+ * อัปเดตข้อมูลโปรไฟล์บางส่วน
+ */
+export async function dbUpdateProfile(id: string, updates: Partial<Profile>): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const payload: Record<string, unknown> = {};
+    if (updates.full_name !== undefined) payload.full_name = updates.full_name;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.role !== undefined) payload.role = updates.role;
+    if (updates.team_id !== undefined) payload.team_id = updates.team_id;
+    if (updates.mentor_id !== undefined) payload.mentor_id = updates.mentor_id;
+    if (updates.avatar_url !== undefined) payload.avatar_url = updates.avatar_url;
+    if (updates.position !== undefined) payload.position = updates.position;
+    if (updates.password_hash !== undefined) payload.password_hash = updates.password_hash;
+    if (updates.must_change_password !== undefined) payload.must_change_password = updates.must_change_password;
+
+    if (Object.keys(payload).length === 0) return true;
+
+    const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+    if (error) {
+      console.warn('[Supabase] dbUpdateProfile error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbUpdateProfile:', err);
+    return false;
+  }
+}
+
+/**
+ * ลบโปรไฟล์ออกจาก Supabase
+ */
+export async function dbDeleteProfile(id: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) {
+      console.warn('[Supabase] dbDeleteProfile error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbDeleteProfile:', err);
+    return false;
+  }
+}
+
+/**
+ * อัปเดตรหัสผ่านใหม่และปลดล็อกสถานะ must_change_password ใน Supabase
+ */
+export async function dbUpdateProfilePassword(email: string, passwordHash: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        password_hash: passwordHash,
+        must_change_password: false,
+        password_changed_at: new Date().toISOString(),
+      })
+      .eq('email', email.trim().toLowerCase());
+
+    if (error) {
+      console.warn('[Supabase] dbUpdateProfilePassword error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception in dbUpdateProfilePassword:', err);
     return false;
   }
 }

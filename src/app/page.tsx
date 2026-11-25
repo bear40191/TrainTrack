@@ -15,6 +15,7 @@ import { WorkLogDetailModal } from '@/components/work-log/WorkLogDetailModal';
 import { NotificationModal } from '@/components/layout/NotificationModal';
 import { ProfileModal } from '@/components/profile/ProfileModal';
 import { LoginPage } from '@/components/auth/LoginPage';
+import { ForceChangePasswordModal } from '@/components/auth/ForceChangePasswordModal';
 
 export default function HomePage() {
   const { currentUser, workLogs, isAuthenticated, logout, restoreSession, syncFromSupabase } = useAppStore();
@@ -72,6 +73,11 @@ export default function HomePage() {
   // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้า Login
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={() => setActiveTab('dashboard')} />;
+  }
+
+  // บังคับเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก (สำหรับบัญชีที่มี must_change_password = true)
+  if (currentUser?.must_change_password) {
+    return <ForceChangePasswordModal />;
   }
 
   return (

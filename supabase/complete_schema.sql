@@ -59,6 +59,7 @@ CREATE TABLE profiles (
   avatar_url TEXT,
   position TEXT,
   password_hash TEXT,
+  must_change_password BOOLEAN NOT NULL DEFAULT true,
   password_changed_at TIMESTAMPTZ DEFAULT now(),
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -198,24 +199,25 @@ INSERT INTO teams (id, name, department) VALUES
 ('team-mobile-1', 'Mobile & Web Development', 'Engineering')
 ON CONFLICT (id) DO NOTHING;
 
--- 8.2 Profiles
-INSERT INTO profiles (id, full_name, email, role, team_id, mentor_id, avatar_url, position) VALUES
+-- 8.2 Profiles (บัญชี Demo ตั้งค่า must_change_password = false เพื่อให้ทดลองเข้าใช้งานได้ทันที)
+INSERT INTO profiles (id, full_name, email, role, team_id, mentor_id, avatar_url, position, must_change_password) VALUES
 -- Admin
-('user-admin-1', 'ผู้ดูแลระบบสูงสุด (System Admin)', 'admin@traintrack.app', 'admin', NULL, NULL, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', 'System Administrator'),
+('user-admin-1', 'ผู้ดูแลระบบสูงสุด (System Admin)', 'admin@traintrack.app', 'admin', NULL, NULL, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', 'System Administrator', false),
 -- Lead
-('user-lead-1', 'หัวหน้าวีระ ชัยชนะ (หัวหน้าพี่เลี้ยง)', 'veera.lead@traintrack.app', 'lead', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', 'Engineering Lead'),
+('user-lead-1', 'หัวหน้าวีระ ชัยชนะ (หัวหน้าพี่เลี้ยง)', 'veera.lead@traintrack.app', 'lead', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', 'Engineering Lead', false),
 -- Mentors
-('user-mentor-1', 'พี่สมชาย ชูใจ (พี่เลี้ยงฝั่ง Frontend)', 'somchai.frontend@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'Senior Frontend Developer'),
-('user-mentor-2', 'พี่วิภาดา ศรีกุล (พี่เลี้ยงฝั่ง Backend & Database)', 'vipada.backend@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', 'Lead Backend Engineer'),
-('user-mentor-3', 'พี่อานนท์ มั่นคง (พี่เลี้ยงฝั่ง DevOps & Native Plugin)', 'arnon.devops@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'DevOps & Mobile Specialist'),
+('user-mentor-1', 'พี่สมชาย ชูใจ (พี่เลี้ยงฝั่ง Frontend)', 'somchai.frontend@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'Senior Frontend Developer', false),
+('user-mentor-2', 'พี่วิภาดา ศรีกุล (พี่เลี้ยงฝั่ง Backend & Database)', 'vipada.backend@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', 'Lead Backend Engineer', false),
+('user-mentor-3', 'พี่อานนท์ มั่นคง (พี่เลี้ยงฝั่ง DevOps & Native Plugin)', 'arnon.devops@traintrack.app', 'mentor', 'team-mobile-1', NULL, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'DevOps & Mobile Specialist', false),
 -- Trainees
-('user-trainee-1', 'กิตติศักดิ์ พัฒนาดี (นักศึกษาฝึกงาน)', 'kittisak.trainee@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-1', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'Frontend Developer Intern'),
-('user-trainee-2', 'ณิชา มณีรัตน์ (นักศึกษาฝึกงาน)', 'nicha.backend@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-2', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'Backend Developer Intern'),
-('user-trainee-3', 'ธนกฤต สุขเกษม (นักศึกษาฝึกงาน)', 'thanakrit.devops@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-3', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'Mobile DevOps Intern')
+('user-trainee-1', 'กิตติศักดิ์ พัฒนาดี (นักศึกษาฝึกงาน)', 'kittisak.trainee@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-1', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'Frontend Developer Intern', false),
+('user-trainee-2', 'ณิชา มณีรัตน์ (นักศึกษาฝึกงาน)', 'nicha.backend@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-2', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'Backend Developer Intern', false),
+('user-trainee-3', 'ธนกฤต สุขเกษม (นักศึกษาฝึกงาน)', 'thanakrit.devops@traintrack.app', 'trainee', 'team-mobile-1', 'user-mentor-3', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'Mobile DevOps Intern', false)
 ON CONFLICT (id) DO UPDATE SET
   full_name = EXCLUDED.full_name,
   role = EXCLUDED.role,
-  position = EXCLUDED.position;
+  position = EXCLUDED.position,
+  must_change_password = EXCLUDED.must_change_password;
 
 -- 8.3 Categories
 INSERT INTO categories (name) VALUES

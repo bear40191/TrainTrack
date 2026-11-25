@@ -18,6 +18,8 @@ export interface Profile {
   mentor_id: string | null;
   avatar_url: string | null;
   position?: string;
+  password_hash?: string | null;
+  must_change_password?: boolean;
   created_at: string;
 }
 

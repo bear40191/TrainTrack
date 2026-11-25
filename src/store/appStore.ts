@@ -15,6 +15,9 @@ import {
   dbAddApprovalAction,
   dbAddComment,
   dbUpsertProfile,
+  dbUpdateProfile,
+  dbDeleteProfile,
+  dbUpdateProfilePassword,
 } from '@/services/db';
 
 
@@ -341,6 +344,15 @@ export const useAppStore = create<AppState>((set, get) => ({
           if (mentors.length > 0) nextState.mentors = mentors;
           if (leads.length > 0) nextState.leads = leads;
 
+          // ซิงค์ password_hash จากฐานข้อมูลเข้าสู่ userPasswords
+          const syncedPasswords: Record<string, string> = { ...state.userPasswords };
+          dbProfiles.forEach((p) => {
+            if (p.password_hash) {
+              syncedPasswords[p.email.toLowerCase()] = p.password_hash;
+            }
+          });
+          nextState.userPasswords = syncedPasswords;
+
           // อัปเดต currentUser หากมีใน Database
           const currentInDb = dbProfiles.find(
             (p) => p.id === state.currentUser?.id || p.email.toLowerCase() === state.currentUser?.email.toLowerCase()
@@ -402,7 +414,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...state.userPasswords,
         [trimmed]: hashed,
       },
+      currentUser:
+        state.currentUser.email.toLowerCase() === trimmed
+          ? { ...state.currentUser, password_hash: hashed, must_change_password: false }
+          : state.currentUser,
+      trainees: state.trainees.map((u) =>
+        u.email.toLowerCase() === trimmed ? { ...u, password_hash: hashed, must_change_password: false } : u
+      ),
+      mentors: state.mentors.map((u) =>
+        u.email.toLowerCase() === trimmed ? { ...u, password_hash: hashed, must_change_password: false } : u
+      ),
+      leads: state.leads.map((u) =>
+        u.email.toLowerCase() === trimmed ? { ...u, password_hash: hashed, must_change_password: false } : u
+      ),
     }));
+    void dbUpdateProfilePassword(trimmed, hashed);
 
     return {
       success: true,
@@ -417,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       (u) => u.email.toLowerCase() === trimmed
     );
     if (found) {
-      const expectedPassword = get().userPasswords[trimmed] || '123456';
+      const expectedPassword = found.password_hash || get().userPasswords[trimmed] || '123456';
       if (password && !verifyPassword(password, expectedPassword)) {
         return false;
       }
@@ -550,6 +576,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
 
+    const defaultHash = hashPassword('123456');
     const newTrainee: Profile = {
       id: 'user-trainee-' + Date.now(),
       full_name: data.full_name.trim(),
@@ -559,6 +586,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentor_id: data.mentor_id || null,
       avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`,
       position: data.position?.trim() || 'นักศึกษาฝึกงาน (Intern)',
+      password_hash: defaultHash,
+      must_change_password: true,
       created_at: new Date().toISOString(),
     };
 
@@ -566,30 +595,33 @@ export const useAppStore = create<AppState>((set, get) => ({
       trainees: [newTrainee, ...state.trainees],
       userPasswords: {
         ...state.userPasswords,
-        [trimmedEmail]: '123456',
+        [trimmedEmail]: defaultHash,
       },
     }));
     void dbUpsertProfile(newTrainee);
 
-    return { success: true, message: 'เพิ่มนักศึกษาเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+    return { success: true, message: 'เพิ่มนักศึกษาเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456 — ต้องเปลี่ยนเมื่อเข้าระบบครั้งแรก)' };
   },
 
   updateTrainee: (id, updates) => {
     set((state) => ({
       trainees: state.trainees.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }));
+    void dbUpdateProfile(id, updates);
   },
 
   removeTrainee: (id) => {
     set((state) => ({
       trainees: state.trainees.filter((t) => t.id !== id),
     }));
+    void dbDeleteProfile(id);
   },
 
   assignMentorToTrainee: (traineeId, mentorId) => {
     set((state) => ({
       trainees: state.trainees.map((t) => (t.id === traineeId ? { ...t, mentor_id: mentorId } : t)),
     }));
+    void dbUpdateProfile(traineeId, { mentor_id: mentorId });
   },
 
   addMentor: (data) => {
@@ -599,6 +631,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
 
+    const defaultHash = hashPassword('123456');
     const newMentor: Profile = {
       id: 'user-mentor-' + Date.now(),
       full_name: data.full_name.trim(),
@@ -608,6 +641,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentor_id: null,
       avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
       position: data.position?.trim() || 'Senior Developer / Mentor',
+      password_hash: defaultHash,
+      must_change_password: true,
       created_at: new Date().toISOString(),
     };
 
@@ -615,17 +650,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentors: [...state.mentors, newMentor],
       userPasswords: {
         ...state.userPasswords,
-        [trimmedEmail]: '123456',
+        [trimmedEmail]: defaultHash,
       },
     }));
+    void dbUpsertProfile(newMentor);
 
-    return { success: true, message: 'เพิ่มพี่เลี้ยงใหม่เรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+    return { success: true, message: 'เพิ่มพี่เลี้ยงใหม่เรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456 — ต้องเปลี่ยนเมื่อเข้าระบบครั้งแรก)' };
   },
 
   updateMentor: (id, updates) => {
     set((state) => ({
       mentors: state.mentors.map((m) => (m.id === id ? { ...m, ...updates } : m)),
     }));
+    void dbUpdateProfile(id, updates);
   },
 
   removeMentor: (id) => {
@@ -642,6 +679,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // ปลดพี่เลี้ยงออกจากนักศึกษาที่เคยผูกไว้
       trainees: state.trainees.map((t) => (t.mentor_id === id ? { ...t, mentor_id: null } : t)),
     });
+    void dbDeleteProfile(id);
 
     return { success: true, message: 'ลบข้อมูลพี่เลี้ยงเรียบร้อยแล้ว' };
   },
@@ -653,6 +691,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { success: false, message: 'อีเมลนี้มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น' };
     }
 
+    const defaultHash = hashPassword('123456');
     const newLead: Profile = {
       id: 'user-lead-' + Date.now(),
       full_name: data.full_name.trim(),
@@ -662,6 +701,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentor_id: null,
       avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       position: data.position?.trim() || 'Lead Engineer / Head of Mentors',
+      password_hash: defaultHash,
+      must_change_password: true,
       created_at: new Date().toISOString(),
     };
 
@@ -669,17 +710,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       leads: [...state.leads, newLead],
       userPasswords: {
         ...state.userPasswords,
-        [trimmedEmail]: '123456',
+        [trimmedEmail]: defaultHash,
       },
     }));
+    void dbUpsertProfile(newLead);
 
-    return { success: true, message: 'เพิ่มหัวหน้าพี่เลี้ยงเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456)' };
+    return { success: true, message: 'เพิ่มหัวหน้าพี่เลี้ยงเรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: 123456 — ต้องเปลี่ยนเมื่อเข้าระบบครั้งแรก)' };
   },
 
   updateLead: (id, updates) => {
     set((state) => ({
       leads: state.leads.map((l) => (l.id === id ? { ...l, ...updates } : l)),
     }));
+    void dbUpdateProfile(id, updates);
   },
 
   removeLead: (id) => {
@@ -694,6 +737,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       leads: state.leads.filter((l) => l.id !== id),
     });
+    void dbDeleteProfile(id);
 
     return { success: true, message: 'ลบหัวหน้าพี่เลี้ยงเรียบร้อยแล้ว' };
   },
