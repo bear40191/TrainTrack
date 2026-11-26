@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppStore, ALL_DEMO_USERS } from '@/store/appStore';
+import { useAppStore } from '@/store/appStore';
 import { ROLE_LABELS } from '@/lib/constants';
 import { validatePasswordPolicy } from '@/lib/password';
 import {
@@ -30,7 +30,7 @@ interface Props {
 }
 
 export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
-  const { currentUser, workLogs, switchRole, selectSpecificMentor, changePassword } = useAppStore();
+  const { currentUser, workLogs, changePassword } = useAppStore();
 
   // State สำหรับการเปลี่ยนรหัสผ่าน
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -380,43 +380,6 @@ export const ProfileModal: React.FC<Props> = ({ onClose, onLogout }) => {
                 </button>
               </form>
             )}
-          </div>
-
-          {/* Quick Account Switcher (สำหรับทดสอบในระบบ) */}
-          <div className="border-t border-slate-100 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-slate-700">สลับบัญชีใช้งานทันที:</span>
-              <span className="text-[10px] text-slate-400">สำหรับทดสอบระบบ</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {ALL_DEMO_USERS.map((u) => {
-                const isActive = u.id === currentUser.id;
-                return (
-                  <button
-                    key={u.id}
-                    onClick={() => {
-                      if (u.role === 'mentor') {
-                        switchRole('mentor', u.id);
-                        selectSpecificMentor(u.id);
-                      } else {
-                        switchRole(u.role);
-                      }
-                      onClose();
-                    }}
-                    className={`p-2 rounded-xl text-left border text-xs transition ${
-                      isActive
-                        ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <p className="truncate font-bold text-[11px]">{u.full_name.split(' ')[0]}</p>
-                    <p className={`text-[10px] truncate ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>
-                      {ROLE_LABELS[u.role].split(' ')[0]}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
 
