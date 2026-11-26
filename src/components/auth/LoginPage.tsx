@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
-  const { login, syncFromSupabase, isDbConnected } = useAppStore();
+  const { loginWithServer } = useAppStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,11 +42,8 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
     }
 
     setIsLoading(true);
-    // ซิงค์ข้อมูลล่าสุดจาก Supabase ก่อนตรวจสอบ (กรณีเพิ่งเปิดหน้าเว็บหรือเพิ่งแก้ข้อมูลใน DB)
-    if (!isDbConnected) {
-      await syncFromSupabase();
-    }
-    const ok = login(email, password);
+    // ตรวจรหัสผ่านฝั่ง Server (เร็วกว่า browser polyfill และไม่ต้องรอโหลดทุกตาราง)
+    const ok = await loginWithServer(email, password);
     setIsLoading(false);
     if (ok) {
       if (onLoginSuccess) onLoginSuccess();

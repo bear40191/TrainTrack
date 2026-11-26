@@ -275,6 +275,7 @@ interface AppState {
   isAuthenticated: boolean;
   userPasswords: Record<string, string>;
   login: (email: string, password?: string) => boolean;
+  loginWithServer: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   restoreSession: () => void;
   changePassword: (email: string, newPassword: string) => { success: boolean; message: string };
@@ -337,74 +338,82 @@ const saveSessionToStorage = (email: string) => {
   }
 };
 
+let inflightSync: Promise<void> | null = null;
+
 export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
   isDbConnected: false,
 
   syncFromSupabase: async () => {
-    try {
-      const [dbLogs, dbProfiles, dbCategories, dbNotifications] = await Promise.all([
-        fetchWorkLogsFromDb(),
-        fetchProfilesFromDb(),
-        fetchCategoriesFromDb(),
-        fetchNotificationsFromDb(),
-      ]);
+    if (inflightSync) return inflightSync;
+    inflightSync = (async () => {
+      try {
+        const [dbLogs, dbProfiles, dbCategories, dbNotifications] = await Promise.all([
+          fetchWorkLogsFromDb(),
+          fetchProfilesFromDb(),
+          fetchCategoriesFromDb(),
+          fetchNotificationsFromDb(),
+        ]);
 
-      set((state) => {
-        const nextState: Partial<AppState> = {};
+        set((state) => {
+          const nextState: Partial<AppState> = {};
 
-        if (dbProfiles && dbProfiles.length > 0) {
-          nextState.isDbConnected = true;
-          const trainees = dbProfiles.filter((p) => p.role === 'trainee');
-          const mentors = dbProfiles.filter((p) => p.role === 'mentor');
-          const leads = dbProfiles.filter((p) => p.role === 'lead');
-          const admins = dbProfiles.filter((p) => p.role === 'admin');
-          if (trainees.length > 0) nextState.trainees = trainees;
-          if (mentors.length > 0) nextState.mentors = mentors;
-          if (leads.length > 0) nextState.leads = leads;
-          if (admins.length > 0) nextState.admins = admins;
+          if (dbProfiles && dbProfiles.length > 0) {
+            nextState.isDbConnected = true;
+            const trainees = dbProfiles.filter((p) => p.role === 'trainee');
+            const mentors = dbProfiles.filter((p) => p.role === 'mentor');
+            const leads = dbProfiles.filter((p) => p.role === 'lead');
+            const admins = dbProfiles.filter((p) => p.role === 'admin');
+            if (trainees.length > 0) nextState.trainees = trainees;
+            if (mentors.length > 0) nextState.mentors = mentors;
+            if (leads.length > 0) nextState.leads = leads;
+            if (admins.length > 0) nextState.admins = admins;
 
-          // ซิงค์ password_hash จากฐานข้อมูลเข้าสู่ userPasswords
-          const syncedPasswords: Record<string, string> = { ...state.userPasswords };
-          dbProfiles.forEach((p) => {
-            if (p.password_hash) {
-              syncedPasswords[p.email.toLowerCase()] = p.password_hash;
+            // ซิงค์ password_hash จากฐานข้อมูลเข้าสู่ userPasswords
+            const syncedPasswords: Record<string, string> = { ...state.userPasswords };
+            dbProfiles.forEach((p) => {
+              if (p.password_hash) {
+                syncedPasswords[p.email.toLowerCase()] = p.password_hash;
+              }
+            });
+            nextState.userPasswords = syncedPasswords;
+
+            // อัปเดต currentUser หากมีใน Database
+            const currentInDb = dbProfiles.find(
+              (p) => p.id === state.currentUser?.id || p.email.toLowerCase() === state.currentUser?.email.toLowerCase()
+            );
+            if (currentInDb) {
+              nextState.currentUser = currentInDb;
             }
-          });
-          nextState.userPasswords = syncedPasswords;
-
-          // อัปเดต currentUser หากมีใน Database
-          const currentInDb = dbProfiles.find(
-            (p) => p.id === state.currentUser?.id || p.email.toLowerCase() === state.currentUser?.email.toLowerCase()
-          );
-          if (currentInDb) {
-            nextState.currentUser = currentInDb;
           }
+
+          if (dbCategories && dbCategories.length > 0) {
+            nextState.categories = dbCategories;
+          }
+
+          if (dbLogs && dbLogs.length > 0) {
+            nextState.isDbConnected = true;
+            nextState.workLogs = dbLogs;
+          }
+
+          if (dbNotifications && dbNotifications.length > 0) {
+            nextState.notifications = dbNotifications;
+          }
+
+          return nextState;
+        });
+
+        // กรณีกู้คืนเซสชันของ user ที่เพิ่งสร้างใหม่ใน DB (ยังไม่เจอตอน initial mock state)
+        if (!get().isAuthenticated) {
+          get().restoreSession();
         }
-
-        if (dbCategories && dbCategories.length > 0) {
-          nextState.categories = dbCategories;
-        }
-
-        if (dbLogs && dbLogs.length > 0) {
-          nextState.isDbConnected = true;
-          nextState.workLogs = dbLogs;
-        }
-
-        if (dbNotifications && dbNotifications.length > 0) {
-          nextState.notifications = dbNotifications;
-        }
-
-        return nextState;
-      });
-
-      // กรณีกู้คืนเซสชันของ user ที่เพิ่งสร้างใหม่ใน DB (ยังไม่เจอตอน initial mock state)
-      if (!get().isAuthenticated) {
-        get().restoreSession();
+      } catch (err) {
+        console.warn('[appStore] syncFromSupabase fallback to local state:', err);
+      } finally {
+        inflightSync = null;
       }
-    } catch (err) {
-      console.warn('[appStore] syncFromSupabase fallback to local state:', err);
-    }
+    })();
+    return inflightSync;
   },
   userPasswords: {
     'kittisak.trainee@traintrack.app': '123456',
@@ -466,6 +475,33 @@ export const useAppStore = create<AppState>((set, get) => ({
       success: true,
       message: 'เปลี่ยนรหัสผ่านสำเร็จแล้ว! สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที',
     };
+  },
+
+  loginWithServer: async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.profile) {
+        set({ currentUser: data.profile, isAuthenticated: true, isDbConnected: true });
+        saveSessionToStorage(data.profile.email);
+        // โหลดข้อมูล work_logs, profiles, categories, notifications แบบ background ไม่บล็อกการเข้าหน้าหลัก
+        void get().syncFromSupabase();
+        return true;
+      }
+
+      if (data.fallbackLocal) {
+        return get().login(email, password);
+      }
+
+      return false;
+    } catch {
+      return get().login(email, password);
+    }
   },
 
   login: (email: string, password?: string) => {
