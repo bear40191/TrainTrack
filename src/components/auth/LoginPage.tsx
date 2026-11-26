@@ -2,68 +2,18 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '@/store/appStore';
-import { Role } from '@/lib/types';
 import { TrainTrackLogo } from '@/components/common/TrainTrackLogo';
 import {
   Lock,
   Mail,
   Eye,
   EyeOff,
-  CheckCircle2,
   AlertCircle,
-  Briefcase,
-  UserCheck,
-  Users,
-  ShieldCheck,
   ArrowRight,
   KeyRound,
   X,
   Check
 } from 'lucide-react';
-
-interface RoleDemoAccount {
-  role: Role;
-  roleTitle: string;
-  name: string;
-  email: string;
-  desc: string;
-  icon: React.ReactNode;
-}
-
-const ROLE_DEMO_ACCOUNTS: RoleDemoAccount[] = [
-  {
-    role: 'trainee',
-    roleTitle: 'นักศึกษา (Trainee)',
-    name: 'กิตติศักดิ์ พัฒนาดี',
-    email: 'kittisak.trainee@traintrack.app',
-    desc: 'บันทึกงาน & งานของฉัน',
-    icon: <Briefcase className="w-4 h-4 text-emerald-600" />,
-  },
-  {
-    role: 'mentor',
-    roleTitle: 'พี่เลี้ยง (Mentor)',
-    name: 'พี่สมชาย ชูใจ',
-    email: 'somchai.frontend@traintrack.app',
-    desc: 'ตรวจงาน & ยืนยันผลงาน',
-    icon: <UserCheck className="w-4 h-4 text-teal-600" />,
-  },
-  {
-    role: 'lead',
-    roleTitle: 'หัวหน้าพี่เลี้ยง (Lead)',
-    name: 'หัวหน้าวีระ ชัยชนะ',
-    email: 'veera.lead@traintrack.app',
-    desc: 'อนุมัติขั้นสุดท้ายทั้งทีม',
-    icon: <Users className="w-4 h-4 text-indigo-600" />,
-  },
-  {
-    role: 'admin',
-    roleTitle: 'ผู้ดูแลระบบ (Admin)',
-    name: 'ผู้ดูแลระบบสูงสุด',
-    email: 'admin@traintrack.app',
-    desc: 'จัดการผู้ใช้ & นำเข้าข้อมูล',
-    icon: <ShieldCheck className="w-4 h-4 text-purple-600" />,
-  },
-];
 
 export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
   const { login, syncFromSupabase, isDbConnected } = useAppStore();
@@ -73,7 +23,6 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedDemoEmail, setSelectedDemoEmail] = useState<string | null>(null);
 
   // State สำหรับ Modal ลืมรหัสผ่าน (ขอรับลิงก์รีเซ็ตทางอีเมลตาม Spec 2026-11-20)
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -81,14 +30,6 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   const [isForgotLoading, setIsForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
-
-  const handleSelectDemoAccount = (acc: RoleDemoAccount) => {
-    setSelectedDemoEmail(acc.email);
-    setEmail(acc.email);
-    setPassword('123456');
-    setErrorMsg(null);
-    setSuccessMsg(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +56,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
   };
 
   const handleOpenForgotPassword = () => {
-    setForgotEmail(email || 'kittisak.trainee@traintrack.app');
+    setForgotEmail(email || '');
     setForgotError(null);
     setForgotSuccess(null);
     setIsForgotModalOpen(true);
@@ -332,58 +273,8 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
           </button>
         </form>
 
-        {/* Quick Demo Account Selector */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-              บัญชีทดสอบแยกตาม 4 บทบาท (คลิกเพื่อเลือก)
-            </span>
-            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              รหัสผ่าน: 123456
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {ROLE_DEMO_ACCOUNTS.map((acc) => {
-              const isSelected = selectedDemoEmail === acc.email;
-              return (
-                <button
-                  key={acc.role}
-                  type="button"
-                  onClick={() => handleSelectDemoAccount(acc)}
-                  className={`flex items-start gap-2.5 p-2.5 rounded-2xl text-left border transition cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-xs ring-1 ring-emerald-500'
-                      : 'bg-slate-50/80 border-slate-200 hover:bg-slate-100/90 hover:border-slate-300 text-slate-700'
-                  }`}
-                >
-                  <div className="w-7 h-7 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
-                    {acc.icon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[11px] font-black truncate text-slate-900">
-                        {acc.roleTitle}
-                      </span>
-                      {isSelected && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-600 font-medium truncate">
-                      {acc.name}
-                    </p>
-                    <p className="text-[9px] text-slate-400 truncate">
-                      {acc.desc}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Bottom Attribution */}
-        <div className="mt-5 text-center">
+        <div className="mt-6 pt-4 border-t border-slate-100 text-center">
           <p className="text-[11px] text-slate-400">
             TrainTrack Hybrid Internship Management Platform
           </p>
@@ -454,7 +345,7 @@ export const LoginPage: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSu
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="เช่น kittisak.trainee@traintrack.app"
+                    placeholder="กรอกอีเมลของคุณ เช่น name@example.com"
                     required
                     className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
                   />
