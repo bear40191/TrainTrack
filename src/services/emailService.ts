@@ -9,8 +9,9 @@ import { Resend } from 'resend';
 import { sanitizeHtml, sanitizeText, isValidEmail } from '@/lib/security';
 
 // --- Gmail SMTP Config ---
-const gmailUser = process.env.GMAIL_USER;
-const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+const gmailUser = process.env.GMAIL_USER?.trim();
+// ลบช่องว่างออกจาก App Password เผื่อผู้ใช้คัดลอกมาแบบเว้นวรรคทุก 4 ตัว (xxxx xxxx xxxx xxxx)
+const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '').trim();
 const isGmailConfigured = Boolean(
   gmailUser &&
     gmailAppPassword &&

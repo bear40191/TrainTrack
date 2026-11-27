@@ -166,9 +166,16 @@ export async function requestPasswordReset(
   // สร้างลิงก์จาก Config โดเมนเท่านั้น (ห้ามใช้ Host Header)
   const resetLink = `${getAppBaseUrl()}/reset-password?token=${rawToken}`;
 
-  // สั่งส่งอีเมลแบบ Asynchronous (ไม่บล็อกการตอบกลับ)
+  // สั่งส่งอีเมลแบบ await เพื่อให้ Vercel Serverless ไม่ถูกตัดการทำงานก่อนส่งเสร็จ
   // ห้ามบันทึก rawToken หรือรหัสผ่านลงใน log
-  void sendPasswordResetEmail(targetUser.email, resetLink);
+  try {
+    const emailRes = await sendPasswordResetEmail(targetUser.email, resetLink);
+    if (!emailRes.success) {
+      console.error('[PasswordReset] Email send failed:', emailRes.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error('[PasswordReset] Email send exception:', err instanceof Error ? err.message : 'Unknown error');
+  }
 
   return {
     success: true,
@@ -286,8 +293,15 @@ export async function resetPasswordWithToken(
   // 4. ล็อกเอาต์ทุกอุปกรณ์ (Revoke sessions)
   store.logout();
 
-  // 5. ส่งอีเมลแจ้งเตือนว่ารหัสผ่านถูกเปลี่ยนแปลงแล้ว
-  void sendPasswordChangedNotificationEmail(tokenRecord.email);
+  // 5. ส่งอีเมลแจ้งเตือนว่ารหัสผ่านถูกเปลี่ยนแปลงแล้ว (await เพื่อให้ทำงานจบบน Serverless)
+  try {
+    const notifyRes = await sendPasswordChangedNotificationEmail(tokenRecord.email);
+    if (!notifyRes.success) {
+      console.error('[PasswordReset] Notification email failed:', notifyRes.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error('[PasswordReset] Notification email exception:', err instanceof Error ? err.message : 'Unknown error');
+  }
 
   return {
     success: true,
