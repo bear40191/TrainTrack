@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/services/emailService';
+import { checkNotificationRateLimit } from '@/lib/rate-limit';
+import { getSessionFromRequest, getClientIp } from '@/lib/session';
 import {
   sanitizeHtml,
   sanitizeText,
@@ -165,7 +167,25 @@ function buildEmailContent(data: SendNotificationRequest): {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Parse และตรวจสอบ Request Body
+    // 1. ตรวจสอบสิทธิ์ผู้ใช้จาก Signed HttpOnly Session Cookie
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: กรุณาเข้าสู่ระบบก่อนส่งการแจ้งเตือน' },
+        { status: 401 }
+      );
+    }
+
+    // 2. ตรวจสอบ Rate Limit ป้องกันการยิงสแปมอีเมล
+    const rate = checkNotificationRateLimit(session.email, getClientIp(request));
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'ส่งการแจ้งเตือนเกินโควตาที่กำหนด กรุณาลองใหม่ภายหลัง' },
+        { status: 429 }
+      );
+    }
+
+    // 3. Parse และตรวจสอบ Request Body
     const body: SendNotificationRequest = await request.json();
 
     // 2. ตรวจสอบ required fields

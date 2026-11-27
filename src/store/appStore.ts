@@ -563,6 +563,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(SESSION_KEY);
+        void fetch('/api/auth/logout', { method: 'POST' });
       } catch {}
     }
     set({ isAuthenticated: false });

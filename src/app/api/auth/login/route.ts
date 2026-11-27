@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/services/supabase';
 import { isSupabaseConfigured } from '@/services/db';
 import { verifyPassword } from '@/lib/password';
+import { checkLoginRateLimit } from '@/lib/rate-limit';
+import { attachSessionCookie, getClientIp } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +22,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'กรุณากรอกอีเมล' },
         { status: 400 }
+      );
+    }
+
+    // ตรวจสอบ Rate Limit ป้องกัน Brute-force
+    const clientIp = getClientIp(request);
+    const rate = checkLoginRateLimit(email, clientIp);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง',
+        },
+        { status: 429 }
       );
     }
 
@@ -59,10 +74,19 @@ export async function POST(request: NextRequest) {
     const safeProfile = { ...profile };
     delete (safeProfile as Record<string, unknown>).password_hash;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       profile: safeProfile,
     });
+
+    // ออก Signed HttpOnly Session Cookie
+    attachSessionCookie(response, {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role,
+    });
+
+    return response;
   } catch (error) {
     console.error('[TrainTrack Auth] Login error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(

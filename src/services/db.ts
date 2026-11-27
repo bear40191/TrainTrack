@@ -17,6 +17,10 @@ export function isSupabaseConfigured(): boolean {
   );
 }
 
+// คอลัมน์โปรไฟล์ที่ปลอดภัยสำหรับส่งให้ Browser (ไม่รวม password_hash)
+const SAFE_PROFILE_COLUMNS =
+  'id, full_name, email, role, team_id, mentor_id, avatar_url, position, must_change_password, password_changed_at, created_at';
+
 /**
  * ดึงรายการบันทึกงานทั้งหมดพร้อมข้อมูลสัมพันธ์ (Profiles, Attachments, Comments, ApprovalActions)
  */
@@ -28,11 +32,11 @@ export async function fetchWorkLogsFromDb(): Promise<WorkLog[] | null> {
       .from('work_logs')
       .select(`
         *,
-        trainee:profiles!work_logs_trainee_id_fkey(*),
-        assigned_mentor:profiles!work_logs_assigned_mentor_id_fkey(*),
+        trainee:profiles!work_logs_trainee_id_fkey(${SAFE_PROFILE_COLUMNS}),
+        assigned_mentor:profiles!work_logs_assigned_mentor_id_fkey(${SAFE_PROFILE_COLUMNS}),
         attachments(*),
-        comments(*, author:profiles(*)),
-        approval_actions(*, actor:profiles(*))
+        comments(*, author:profiles(${SAFE_PROFILE_COLUMNS})),
+        approval_actions(*, actor:profiles(${SAFE_PROFILE_COLUMNS}))
       `)
       .order('created_at', { ascending: false });
 
@@ -49,7 +53,7 @@ export async function fetchWorkLogsFromDb(): Promise<WorkLog[] | null> {
 }
 
 /**
- * ดึงข้อมูลผู้ใช้งานทั้งหมดจาก profiles table
+ * ดึงข้อมูลผู้ใช้งานทั้งหมดจาก profiles table (ไม่ดึง password_hash ลง Browser)
  */
 export async function fetchProfilesFromDb(): Promise<Profile[] | null> {
   if (!isSupabaseConfigured()) return null;
@@ -57,7 +61,7 @@ export async function fetchProfilesFromDb(): Promise<Profile[] | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(SAFE_PROFILE_COLUMNS)
       .order('created_at', { ascending: true });
 
     if (error) {
